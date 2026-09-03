@@ -1,0 +1,22 @@
+{
+  "name": "house-3d",
+  "version": "2.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Interactive dollhouse-cutaway 3D model of a 6 x 6 m two-storey house, built from spec v2.1.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "check": "node scripts/acceptance-report.js",
+    "spec-doc": "node scripts/spec-doc.js"
+  },
+  "dependencies": {
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0",
+    "vitest": "^3.2.0"
+  }
+}

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>House model v3</title>
+  </head>
+  <body>
+    <main class="page">
+      <h1 data-i18n="title">6 × 6 m two-storey house</h1>
+      <div class="toolbar" id="toolbar" role="toolbar" aria-label="Model controls">
+        <div class="toolbar__group" aria-label="Levels">
+          <button type="button" data-levels="both" data-i18n="both" aria-pressed="true">Both levels</button>
+          <button type="button" data-levels="ground" data-i18n="ground" aria-pressed="false">Ground only</button>
+          <button type="button" data-levels="first" data-i18n="first" aria-pressed="false">First only</button>
+        </div>
+        <div class="toolbar__group" aria-label="View">
+          <button type="button" data-mode="section" data-i18n="section" aria-pressed="true">Section</button>
+          <button type="button" data-mode="cutaway" data-i18n="cutaway" aria-pressed="false">Cutaway</button>
+          <button type="button" data-mode="full" data-i18n="full" aria-pressed="false">Full</button>
+        </div>
+        <div class="toolbar__group" aria-label="Layout">
+          <button type="button" data-layout="exploded" data-i18n="exploded" aria-pressed="true">Side by side</button>
+          <button type="button" data-layout="assembled" data-i18n="assembled" aria-pressed="false">Whole house</button>
+        </div>
+        <div class="toolbar__group" aria-label="Overlays">
+          <button type="button" data-toggle="roof" data-i18n="roof" aria-pressed="false">Roof</button>
+          <button type="button" data-toggle="labels" data-i18n="labels" aria-pressed="false">Labels</button>
+          <button type="button" data-toggle="dimensions" data-i18n="dimensions" aria-pressed="false">Dimensions</button>
+        </div>
+        <div class="toolbar__group" aria-label="Actions">
+          <button type="button" data-action="reset" data-i18n="reset">Reset view</button>
+          <button type="button" data-action="language" data-i18n="language" lang="ar">العربية</button>
+        </div>
+      </div>
+      <div id="viewport" class="viewport"></div>
+      <p class="hint" data-i18n="hint">
+        Drag to orbit, scroll to zoom. Section drops the walls facing you to 1.20 m and follows the camera;
+        Cutaway lowers every wall; Full shows the whole envelope with glazing. Whole house stacks the levels and seats the roof.
+      </p>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

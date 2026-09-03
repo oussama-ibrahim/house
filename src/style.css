@@ -1,0 +1,218 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ink: #2b2a27;
+  --muted: #6d6a63;
+  --ground: #faf8f4;
+  --panel: #f1ede6;
+  --line: #d5cfc4;
+  --accent: #a9784e;
+  --accent-ink: #ffffff;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+}
+
+.toolbar {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.toolbar__group {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.toolbar__group + .toolbar__group {
+  padding-left: 1rem;
+  border-left: 1px solid var(--line);
+}
+
+.toolbar button {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.toolbar button:hover {
+  border-color: var(--accent);
+}
+
+.toolbar button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.viewport {
+  position: relative;
+  width: 100%;
+  /* Grows with the window so the model is not squeezed into a strip; never below the spec's 480 px. */
+  height: clamp(480px, 76vh, 900px);
+  border-radius: 8px;
+  background: linear-gradient(#f6f3ed, #e9e4db);
+  overflow: hidden;
+}
+
+.viewport canvas {
+  display: block;
+  touch-action: none;
+}
+
+.viewport .error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* DOM labels drawn by CSS2DRenderer; the layer never intercepts pointer events. The layer and its
+   positioned wrappers stay left-to-right whatever the page direction: the renderer measures its
+   offsets from the left edge, and a right-to-left static position would shift every label by the
+   layer's width. Only the text inside follows the document direction. */
+.labels-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  overflow: hidden;
+  direction: ltr;
+}
+
+.labels-layer > * {
+  left: 0;
+  top: 0;
+}
+
+[dir="rtl"] .labels-layer .pin,
+[dir="rtl"] .labels-layer .caption,
+[dir="rtl"] .labels-layer .tag,
+[dir="rtl"] .labels-layer .dim {
+  direction: rtl;
+}
+
+/* Size strings are numbers joined by "×"; inside right-to-left text the bidi algorithm would lay the
+   numbers out back to front, so they are isolated left-to-right in both languages. */
+.tag__size,
+.dim__text {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.pin__text {
+  display: inline-block;
+  transform: translateY(-50%);
+  padding: 3px 7px;
+  border: 1px solid rgba(43, 42, 39, 0.35);
+  border-radius: 3px;
+  background: rgba(250, 248, 244, 0.92);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.caption {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.caption__title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.caption__sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.dim__text {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(250, 248, 244, 0.9);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+/* Room size tags: the room name over width × depth and net area, on the floor at the room's centre. */
+.tag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3px 6px;
+  border: 1px dashed rgba(43, 42, 39, 0.35);
+  border-radius: 3px;
+  background: rgba(250, 248, 244, 0.85);
+  white-space: nowrap;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.tag__name {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tag__size {
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Numbers stay Latin digits in both languages; the layout mirrors. */
+[dir="rtl"] .toolbar__group + .toolbar__group {
+  padding-left: 0;
+  padding-right: 1rem;
+  border-left: 0;
+  border-right: 1px solid var(--line);
+}
+
+[dir="rtl"] .caption {
+  align-items: flex-end;
+}
+
+.hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
