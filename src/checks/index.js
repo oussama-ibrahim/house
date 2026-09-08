@@ -1,4 +1,5 @@
-// Part 7 of the spec, run as assertions.
+// Part 7 of the spec, run as assertions, for one design at a time.
+import { DEFAULT_DESIGN } from '../spec/designs.js';
 import { buildHouse } from '../model/house.js';
 import { checkAreas } from './areas.js';
 import { checkClearZones, checkClearances, checkWallContacts, checkWindowPrisms } from './furniture.js';
@@ -6,9 +7,9 @@ import { checkHandrail, checkHeadroom, checkStairAlignment, checkStairWidth } fr
 import { checkVisibility } from './visibility.js';
 import { checkPartitionClipping } from './walls.js';
 
-export function runAcceptanceChecks() {
-  const full = buildHouse({ cutaway: false });
-  const cutaway = buildHouse({ cutaway: true });
+export function runAcceptanceChecks(design = DEFAULT_DESIGN) {
+  const full = buildHouse({ cutaway: false, design });
+  const cutaway = buildHouse({ cutaway: true, design });
   return [
     checkAreas(full),
     checkHeadroom(full),

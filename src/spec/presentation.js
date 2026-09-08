@@ -12,8 +12,8 @@ export const DEFAULT_LAYOUT = 'exploded';
 // The three overlays start switched off; the model reads cleanest bare.
 export const DEFAULT_TOGGLES = Object.freeze({ roof: false, labels: false, dimensions: false });
 
-// Assembled layout: the ground level's footprint sits centred on the world origin.
-export const ASSEMBLED_ORIGIN = Object.freeze([-3, 0, -3]);
+// Assembled layout: the ground level's 6.15 × 7.20 footprint sits centred on the world origin.
+export const ASSEMBLED_ORIGIN = Object.freeze([-3.075, 0, -3.6]);
 
 // Fraction of the frame the visible levels (and roof) are fitted into on load, reset and level
 // toggles. The horizontal margin is looser because label boxes spread sideways from their pins.
@@ -30,7 +30,7 @@ export const OUTLINE = Object.freeze({ colour: '#3A3833', opacity: 0.35 });
 // Black aluminium frames in every window opening: jambs, rails and a mullion per ~0.8 m pane.
 export const FRAME = Object.freeze({ member: 0.05, depth: 0.06, paneWidth: 0.8 });
 
-// A flat roof: the 6 × 6 slab with a parapet all round and a membrane inside it.
+// A flat roof: the top level's slab with a parapet all round and a membrane inside it.
 export const ROOF = Object.freeze({
   slabThickness: 0.28,
   parapetHeight: 1.1,

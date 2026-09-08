@@ -2,7 +2,7 @@ import { WALL_HEIGHT } from '../spec/global.js';
 import { unionBounds } from './box.js';
 import { floorPatches, slabBoxes } from './floors.js';
 import { furnitureBoxes } from './furniture.js';
-import { handrailBox, handrailCentrelineY, treadBoxes } from './stair.js';
+import { guardParts, handrailBox, handrailCentrelineY, landingParts, stringerBoxes, treadBoxes } from './stair.js';
 import { splitWall, wallEnvelope } from './walls.js';
 
 /**
@@ -21,7 +21,15 @@ export function buildLevel(spec, options = {}) {
     dressing: furnitureBoxes(spec.dressing ?? []),
     treads: spec.stair ? treadBoxes(spec.stair) : [],
     handrail: spec.stair ? handrailBox(spec.stair) : null,
+    // Steelwork of the main flight: sloped stringers and guard rail, plus the guard's posts.
+    stairwork: spec.stair ? stairwork(spec.stair) : { sloped: [], boxes: [] },
   };
+}
+
+function stairwork(stair) {
+  const guard = guardParts(stair);
+  const landing = landingParts(stair);
+  return { sloped: [...stringerBoxes(stair), ...guard.rails], boxes: [landing.frame, ...landing.posts, ...guard.posts] };
 }
 
 export function wallSolids(level) {

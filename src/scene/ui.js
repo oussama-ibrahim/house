@@ -3,6 +3,7 @@ import { LAYOUTS, VIEW_MODES } from '../spec/presentation.js';
 
 export const LEVEL_MODES = Object.freeze(['both', 'ground', 'first']);
 const TOGGLES = Object.freeze(['roof', 'labels', 'dimensions']);
+const ANGLES = Object.freeze(['azimuth', 'polar']);
 
 function flag(value) {
   if (value === '0') return false;
@@ -24,6 +25,11 @@ export function viewStateFromParams(params) {
   if (LAYOUTS.includes(layout)) state.layout = layout;
   const lang = params.get('lang');
   if (LANGUAGES.includes(lang)) state.language = lang;
+  // Camera angles in radians, for sharing or capturing a particular view such as an elevation.
+  for (const name of ANGLES) {
+    const value = Number.parseFloat(params.get(name));
+    if (Number.isFinite(value)) state[name] = value;
+  }
   for (const name of TOGGLES) {
     const value = flag(params.get(name));
     if (value !== undefined) state[name] = value;
@@ -79,6 +85,7 @@ export function bindToolbar(toolbar, viewer, { page = document } = {}) {
     if (state.layout) selectLayout(state.layout);
     if (state.language) selectLanguage(state.language);
     for (const name of TOGGLES) if (state[name] !== undefined) setToggle(name, state[name]);
+    if (ANGLES.some((name) => state[name] !== undefined)) viewer.setAngles({ azimuth: state.azimuth, polar: state.polar });
   }
 
   toolbar.addEventListener('click', (event) => {

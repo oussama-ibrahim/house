@@ -13,10 +13,11 @@ describe('viewStateFromParams', () => {
       dimensions: true,
     });
     expect(viewStateFromParams(new URLSearchParams('mode=cutaway'))).toEqual({ mode: 'cutaway' });
+    expect(viewStateFromParams(new URLSearchParams('azimuth=0&polar=1.4'))).toEqual({ azimuth: 0, polar: 1.4 });
   });
 
   it('ignores unknown values so the viewer keeps its defaults', () => {
-    expect(viewStateFromParams(new URLSearchParams('levels=roof&mode=xray&layout=stack&lang=fr&roof=maybe'))).toEqual({});
+    expect(viewStateFromParams(new URLSearchParams('design=b&levels=roof&mode=xray&layout=stack&lang=fr&roof=maybe&azimuth=east'))).toEqual({});
     expect(viewStateFromParams(new URLSearchParams(''))).toEqual({});
   });
 });

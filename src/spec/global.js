@@ -2,24 +2,46 @@
 // X east, Z south, Y up, origin at the north-west corner of the exterior face,
 // y = 0 at the finished floor surface of that level.
 
-export const FOOTPRINT = 6.0;
-export const GROSS_AREA = FOOTPRINT * FOOTPRINT;
+// The plot: 6.15 m along the street (east–west) by 7.20 m deep (north–south). The first level
+// projects 1.00 m over the street beyond the ground level's south face on a cantilevered slab, so it
+// is 8.20 m deep; both levels keep their origin at the shared north-west corner.
+export const FOOTPRINT = Object.freeze({ width: 6.15, depth: 7.2 });
+export const UPPER_FOOTPRINT = Object.freeze({ width: 6.15, depth: 8.2 });
+export const GROSS_AREA = FOOTPRINT.width * FOOTPRINT.depth;
 export const EXTERIOR_WALL_THICKNESS = 0.2;
 export const PARTITION_THICKNESS = 0.1;
 export const WALL_HEIGHT = 2.6;
 export const CUTAWAY_WALL_HEIGHT = 1.2;
 export const SLAB_THICKNESS = 0.28;
 export const FLOOR_TO_FLOOR = 2.88;
-export const INTERIOR = Object.freeze({ min: 0.2, max: 5.8 });
+// Finished interior faces of each footprint, written out so spec coordinates match them exactly.
+export const INTERIOR = Object.freeze({ min: 0.2, xMax: 5.95, zMax: 7.0 });
+export const UPPER_INTERIOR = Object.freeze({ min: 0.2, xMax: 5.95, zMax: 8.0 });
+
+// The window family. Every window is one of four types with a shared 2.40 head (a 0.20 m lintel
+// under the slab); the sill sits just above what stands beneath the type. Widths and positions are
+// the only things a level chooses.
+export const WINDOW_TYPES = Object.freeze({
+  // Habitable rooms: sofa and bed height beneath.
+  room: Object.freeze({ width: 1.2, sill: 0.9, head: 2.4 }),
+  // Wet rooms and the landing: privacy and fittings beneath.
+  high: Object.freeze({ width: 0.8, sill: 1.2, head: 2.4 }),
+  // Over the kitchen worktop.
+  kitchen: Object.freeze({ width: 2.1, sill: 1.1, head: 2.4 }),
+  // The stair pair, one above the other on the front wall; the lower one is fixed laminated glass
+  // because it stands over the landing.
+  stair: Object.freeze({ width: 1.05, sill: 1.1, head: 2.4 }),
+});
 
 // Visual only: the finish patch stands 10 mm proud of y = 0 so it never z-fights the slab top.
 export const FLOOR_FINISH_THICKNESS = 0.01;
 export const GLAZING_THICKNESS = 0.02;
 
-// Both levels are modelled at the same y and placed side by side, centred on the world origin.
+// Both levels are modelled at the same y and placed side by side with a 1.5 m gap, the pair centred
+// on the world origin.
 export const WORLD_PLACEMENT = Object.freeze({
-  ground: Object.freeze([-6.75, 0, -3]),
-  first: Object.freeze([0.75, 0, -3]),
+  ground: Object.freeze([-6.9, 0, -3.6]),
+  first: Object.freeze([0.75, 0, -4.1]),
 });
 
 // Seen from the street side (south-east): the front door faces the viewer and the party wall with the

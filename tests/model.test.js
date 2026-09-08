@@ -5,35 +5,66 @@ import { STAIR } from '../src/spec/stair.js';
 import { boxCorners, fitCamera, fitDistance, orbitPosition, projectPoint } from '../src/model/camera.js';
 import { buildHouse, levelById } from '../src/model/house.js';
 import { findPiece } from '../src/model/level.js';
-import { handrailBox, handrailCentrelineY, nosings, soffitHeightAt, treadBoxes } from '../src/model/stair.js';
+import { guardParts, handrailBox, handrailCentrelineY, landingHeight, landingParts, nosings, starterRect, stringerBoxes, treadBoxes } from '../src/model/stair.js';
 
 describe('stair geometry', () => {
-  it('builds 15 stacked treads from the south wall face northward', () => {
+  it('climbs three starter steps east, crosses the landing and takes the main flight north', () => {
     const treads = treadBoxes(STAIR);
     expect(treads).toHaveLength(15);
-    expect(treads[0]).toMatchObject({ min: [4.55, 0, 5.55], max: [5.8, 0.18, 5.8] });
-    expect(treads[14]).toMatchObject({ min: [4.55, 2.3, 2.05], max: [5.8, 2.7, 2.3] });
+    expect(treads[0]).toMatchObject({ id: 'starter-1', min: [3.89, 0.14, 5.7], max: [4.16, 0.18, 7], material: 'marble' });
+    expect(treads[2]).toMatchObject({ id: 'starter-3', min: [4.43, 0.5, 5.7], max: [4.7, 0.54, 7] });
+    expect(treads[3]).toMatchObject({ id: 'landing', min: [4.7, 0.68, 5.7], max: [5.95, 0.72, 7], tread: 4 });
+    expect(treads[4]).toMatchObject({ id: 'tread-1', min: [4.7, 0.86, 5.45], max: [5.95, 0.9, 5.7], tread: 5, material: 'marble' });
+    expect(treads[14]).toMatchObject({ id: 'tread-11', min: [4.7, 2.66, 2.95], max: [5.95, 2.7, 3.2], tread: 15 });
+    expect(landingHeight(STAIR)).toBeCloseTo(0.72, 9);
+    expect(starterRect(STAIR)).toEqual({ x: [3.89, 4.7], z: [5.7, 7] });
+    // The last riser reaches the upper floor exactly.
+    expect(landingHeight(STAIR) + STAIR.riser * STAIR.risers).toBeCloseTo(2.88, 9);
   });
 
-  it('keeps the store door under a soffit at least as high as its head', () => {
-    const p3 = GROUND.walls.find((w) => w.id === 'P3');
-    const storeDoor = p3.openings.find((o) => o.id === GROUND.understair.door);
-    // Sample the clear opening between the jambs; the south jamb itself sits on a riser line.
-    for (let z = storeDoor.from + 0.025; z < storeDoor.to - 0.025; z += 0.05) {
-      expect(soffitHeightAt(STAIR, z), `soffit at z ${z.toFixed(2)}`).toBeGreaterThanOrEqual(storeDoor.head);
-    }
-    // The usable store ends where the soffit drops below 1.20 m.
-    expect(soffitHeightAt(STAIR, GROUND.understair.z[1] - 0.01)).toBeGreaterThanOrEqual(1.2);
-    expect(soffitHeightAt(STAIR, GROUND.understair.z[1] + 0.05)).toBeLessThan(1.2);
+  it('carries both legs on stringers, the landing on four posts, and guards every open side', () => {
+    const stringers = stringerBoxes(STAIR);
+    expect(stringers.map((s) => s.id)).toEqual(['stringer-west', 'stringer-east', 'starter-stringer-north', 'starter-stringer-south']);
+    const [west, east, starterNorth] = stringers;
+    // The starter stringers climb east: as long as the leg's run and rise, rotated about Z.
+    expect(starterNorth.size[0]).toBeCloseTo(Math.hypot(0.81, 0.54), 9);
+    expect(starterNorth.rotationZ).toBeCloseTo(Math.atan(0.18 / 0.27), 9);
+    expect(starterNorth.centre[2]).toBeCloseTo(5.71, 9);
+    const landing = landingParts(STAIR);
+    expect(landing.frame).toMatchObject({ min: [4.7, 0.48, 5.7], max: [5.95, 0.68, 7] });
+    expect(landing.posts).toHaveLength(4);
+    for (const post of landing.posts) expect([post.min[1], post.max[1]]).toEqual([0, 0.48]);
+    expect(west.centre[0]).toBeCloseTo(4.71, 9);
+    expect(east.centre[0]).toBeCloseTo(5.94, 9);
+    // Both run from the landing to the top riser; their top edge sits just under the nosing line.
+    expect(west.size[2]).toBeCloseTo(Math.hypot(2.75, 1.98), 9);
+    expect(west.centre[1]).toBeCloseTo(handrailCentrelineY(STAIR, 4.325) - 0.9 - 0.2, 9);
+    const guard = guardParts(STAIR);
+    expect(guard.rails.map((rail) => rail.id)).toEqual(['guard-rail', 'starter-guard-rail']);
+    expect(guard.rails[0].centre[0]).toBeCloseTo(4.72, 9);
+    expect(guard.posts.map((post) => post.id)).toEqual([
+      'guard-post-5',
+      'guard-post-8',
+      'guard-post-11',
+      'guard-post-14',
+      'starter-guard-post-1',
+      'starter-guard-post-3',
+      'guard-newel',
+    ]);
+    for (const post of guard.posts.slice(0, 6)) expect(post.max[1] - post.min[1]).toBeCloseTo(0.9 + 0.09 - 0.02, 9);
+    // The newel stands on the landing and reaches the main rail's low end.
+    expect([guard.posts[6].min[1], guard.posts[6].max[1]]).toEqual([0.72, 1.82]);
+    // The living room floor runs under the flight: no wall stands along its west side.
+    expect(GROUND.walls.find((w) => w.id === 'P3').to).toBeLessThanOrEqual(STAIR.bottomZ - STAIR.going * STAIR.treadCount);
   });
 
   it('keeps the handrail 0.90 above every nosing on the east wall and gives the rotated box', () => {
     for (const nosing of nosings(STAIR)) expect(handrailCentrelineY(STAIR, nosing.z) - nosing.y).toBeCloseTo(0.9, 9);
     const rail = handrailBox(STAIR);
-    expect(rail.centre[0]).toBeCloseTo(5.725, 9);
-    expect(rail.centre[1]).toBeCloseTo(2.43, 9);
-    expect(rail.centre[2]).toBeCloseTo(3.925, 9);
-    expect(rail.size[2]).toBeCloseTo(4.005, 3);
+    expect(rail.centre[0]).toBeCloseTo(5.875, 9);
+    expect(rail.centre[1]).toBeCloseTo(2.79, 9);
+    expect(rail.centre[2]).toBeCloseTo(4.325, 9);
+    expect(rail.size[2]).toBeCloseTo(Math.hypot(2.25, 1.62), 9);
     expect(rail.rotationX).toBeCloseTo(Math.atan(0.18 / 0.25), 9);
   });
 });
@@ -84,18 +115,20 @@ describe('level models', () => {
   it('expands composite furniture into parts', () => {
     const chair = findPiece(ground, 'chairW');
     expect(chair.boxes).toHaveLength(2);
-    expect(chair.boxes[1]).toMatchObject({ min: [1.875, 0.45, 2.875], max: [1.955, 0.9, 3.325] });
+    expect(chair.boxes[1]).toMatchObject({ min: [1.675, 0.45, 3.625], max: [1.755, 0.9, 4.075] });
     expect(findPiece(ground, 'diningTable').boxes).toHaveLength(5);
     const leaf = findPiece(ground, 'slidingLeaf', { dressing: true });
     expect(leaf.boxes.map((b) => b.material)).toEqual(['glazing', 'frame', 'frame', 'frame', 'frame']);
   });
 
-  it('gives the first level a two-box slab and finish patches for every room rectangle but the void', () => {
+  it('cuts the first level slab to the void outline and gives finish patches to every room rectangle but the void', () => {
     expect(first.slabs.map((s) => [s.min[0], s.max[0], s.min[2], s.max[2]])).toEqual([
-      [0, 4.55, 0, 6],
-      [4.55, 6, 0, 2.05],
+      [0, 4.7, 0, 8.2],
+      [4.7, 6.15, 0, 2.95],
+      [5.95, 6.15, 2.95, 8.2],
+      [4.7, 5.95, 8, 8.2],
     ]);
-    expect(first.floors.map((f) => f.room)).toEqual(['hall', 'hall', 'bedroom2', 'bedroom1']);
+    expect(first.floors.map((f) => f.room)).toEqual(['landing', 'landing', 'shower', 'bedroom2', 'bedroom1']);
     expect(first.treads).toHaveLength(0);
     expect(first.handrail).toBeNull();
   });

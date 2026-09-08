@@ -34,7 +34,8 @@ function meshForRotatedBox(item, materials, { castShadow = true } = {}) {
   const mesh = new Mesh(UNIT_BOX, materials[item.material]);
   mesh.scale.set(...item.size);
   mesh.position.set(...item.centre);
-  mesh.rotation.x = item.rotationX;
+  mesh.rotation.x = item.rotationX ?? 0;
+  mesh.rotation.z = item.rotationZ ?? 0;
   return decorate(mesh, materials, { castShadow, outline: true, name: item.id });
 }
 
@@ -54,12 +55,12 @@ function furnitureGroup(name, entries, materials) {
   return group;
 }
 
-/** The lifted roof, centred on its own origin; the viewer places it in world space. */
-export function buildRoofGroup(materials) {
+/** The lifted roof for a top level of the given size, centred on its own origin; the viewer places it. */
+export function buildRoofGroup(materials, size) {
   const group = new Group();
   group.name = 'roof';
   // A lifted roof must not shade the rooms it floats near.
-  for (const part of roofBoxes()) group.add(meshForBox(part, materials, { castShadow: false }));
+  for (const part of roofBoxes(size)) group.add(meshForBox(part, materials, { castShadow: false }));
   return group;
 }
 
@@ -116,6 +117,8 @@ export function buildLevelScene(spec, materials, language) {
 
   const handrail = full.handrail ? meshForRotatedBox(full.handrail, materials) : null;
   if (handrail) group.add(handrail);
+  for (const item of full.stairwork.sloped) group.add(meshForRotatedBox(item, materials));
+  group.add(groupOf('stairwork', full.stairwork.boxes, materials, { outline: false }));
 
   const levelScene = {
     spec,

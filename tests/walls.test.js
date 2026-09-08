@@ -14,24 +14,21 @@ describe('splitWall', () => {
     const { solids, glazing } = splitWall(wallById('north'), WALL_HEIGHT);
     const piers = byRole(solids, 'pier').map((p) => [p.min[0], p.max[0]]);
     expect(piers).toEqual([
-      [0, 1.6],
-      [2.6, 4.5],
-      [5.3, 6],
+      [0, 3.6],
+      [5.7, 6.15],
     ]);
-    expect(byRole(solids, 'sill').map((s) => s.max[1])).toEqual([1.1, 1.4]);
-    expect(byRole(solids, 'lintel').map((l) => [l.min[1], l.max[1]])).toEqual([
-      [2.2, 2.6],
-      [2.2, 2.6],
-    ]);
-    expect(glazing.map((g) => g.opening)).toEqual(['Win2', 'Win1']);
+    expect(byRole(solids, 'sill').map((s) => s.max[1])).toEqual([1.1]);
+    expect(byRole(solids, 'lintel').map((l) => [l.min[1], l.max[1]])).toEqual([[2.4, 2.6]]);
+    expect(glazing.map((g) => g.opening)).toEqual(['Win2']);
     for (const box of solids) expect(size(box).every((v) => v > 0)).toBe(true);
   });
 
   it('handles an opening flush with the wall end without a degenerate pier', () => {
-    const { solids } = splitWall(wallById('P3'), WALL_HEIGHT);
+    const flush = wall('t', 'z', 4.65, 0.1, 2.95, 7.0, [door('D9', 3.0, 3.6, 1.9), door('D4', 6.0, 7.0, 2.2, { leaf: false })]);
+    const { solids } = splitWall(flush, WALL_HEIGHT);
     expect(byRole(solids, 'pier').map((p) => [p.min[2], p.max[2]])).toEqual([
-      [2.05, 2.1],
-      [2.8, 4.8],
+      [2.95, 3],
+      [3.6, 6],
     ]);
     expect(byRole(solids, 'sill')).toHaveLength(0);
     expect(byRole(solids, 'lintel').map((l) => [l.min[1], l.max[1]])).toEqual([
@@ -46,50 +43,59 @@ describe('splitWall', () => {
     expect(glazing.map((g) => g.opening)).toEqual(['Win3', 'Win4']);
     expect(glazing[0].min[0]).toBeCloseTo(0.09, 6);
     expect(glazing[0].max[0]).toBeCloseTo(0.11, 6);
-    expect([glazing[1].min[1], glazing[1].max[1]]).toEqual([0.9, 2.2]);
+    expect([glazing[1].min[1], glazing[1].max[1]]).toEqual([0.9, 2.4]);
   });
 
-  it('leaves the blind east wall solid and glazes the kitchen screen from floor to ceiling', () => {
+  it('leaves the blind east wall solid and glazes the kitchen wall from floor to ceiling', () => {
     const east = splitWall(wallById('east'), WALL_HEIGHT);
     expect(east.solids).toHaveLength(1);
     expect(east.glazing).toHaveLength(0);
     expect(east.frames).toHaveLength(0);
 
     const p1 = splitWall(wallById('P1'), WALL_HEIGHT);
-    const glass = p1.glazing.find((g) => g.opening === 'G1');
-    expect([glass.min[1], glass.max[1]]).toEqual([0, WALL_HEIGHT]);
-    expect(p1.solids.some((s) => s.id.startsWith('P1:G1:'))).toBe(false);
+    for (const panel of ['G1', 'G3']) {
+      const glass = p1.glazing.find((g) => g.opening === panel);
+      expect([glass.min[1], glass.max[1]]).toEqual([0, WALL_HEIGHT]);
+      expect(p1.solids.some((s) => s.id.startsWith(`P1:${panel}:`))).toBe(false);
+    }
+    // The open panel leaves neither sill nor lintel: a clear full-height opening in a frame.
+    expect(p1.solids.some((s) => s.id.startsWith('P1:D3:'))).toBe(false);
+    expect(p1.glazing.some((g) => g.opening === 'D3')).toBe(false);
   });
 
   it('frames every window with jambs, rails and mullions, and a transom where asked', () => {
     const north = splitWall(wallById('north'), WALL_HEIGHT);
+    // The 2.10 m kitchen window is three panes: two mullions.
     const win2 = north.frames.filter((f) => f.opening === 'Win2').map((f) => f.id.split(':')[2]);
-    expect(win2.sort()).toEqual(['headRail', 'jambA', 'jambB', 'sillRail'].sort());
+    expect(win2.sort()).toEqual(['headRail', 'jambA', 'jambB', 'mullion1', 'mullion2', 'sillRail'].sort());
     const win2Jamb = north.frames.find((f) => f.id === 'north:Win2:jambA');
-    expect([win2Jamb.min[1], win2Jamb.max[1]]).toEqual([1.1, 2.2]);
+    expect([win2Jamb.min[1], win2Jamb.max[1]]).toEqual([1.1, 2.4]);
     expect(win2Jamb.max[2] - win2Jamb.min[2]).toBeCloseTo(0.06, 6);
 
+    // Each sliding panel is one pane in its own frame: no mullion, no transom.
     const p1 = splitWall(wallById('P1'), WALL_HEIGHT);
     const g1 = p1.frames.filter((f) => f.opening === 'G1').map((f) => f.id.split(':')[2]);
-    expect(g1).toContain('transom');
-    expect(g1).toContain('mullion1');
+    expect(g1.sort()).toEqual(['headRail', 'jambA', 'jambB', 'sillRail'].sort());
     const d3 = p1.frames.filter((f) => f.opening === 'D3').map((f) => f.id.split(':')[2]);
     expect(d3.sort()).toEqual(['headRail', 'jambA', 'jambB'].sort());
+    expect(p1.frames.find((f) => f.id === 'P1:D3:headRail').max[1]).toBe(WALL_HEIGHT);
     expect(p1.frames.some((f) => f.opening === 'D2')).toBe(false);
   });
 
   it('clips to the cutaway height: high sills become solid wall, doors lose their lintel', () => {
     const north = splitWall(wallById('north'), CUTAWAY_WALL_HEIGHT);
-    const win1Sill = north.solids.find((s) => s.id === 'north:Win1:sill');
-    expect(win1Sill.max[1]).toBe(1.2);
     expect(north.solids.some((s) => s.role === 'lintel')).toBe(false);
-    // Win1's sill (1.40) is above the cut, so it has no pane; Win2's sill (1.10) leaves a 10 cm strip.
+    // The kitchen sill (1.10) leaves a 10 cm strip of pane under the cut.
     expect(north.glazing.map((g) => [g.opening, g.min[1], g.max[1]])).toEqual([['Win2', 1.1, 1.2]]);
 
     const south = splitWall(wallById('south'), CUTAWAY_WALL_HEIGHT);
     expect(south.solids.some((s) => s.id.startsWith('south:D1'))).toBe(false);
     const win5 = south.glazing.find((g) => g.opening === 'Win5');
     expect([win5.min[1], win5.max[1]]).toEqual([0.9, 1.2]);
+    // The WC window's sill (1.20) is at the cut: solid wall to the cut and no pane.
+    const west = splitWall(wallById('west'), CUTAWAY_WALL_HEIGHT);
+    expect(west.solids.find((s) => s.id === 'west:Win3:sill').max[1]).toBe(1.2);
+    expect(west.glazing.some((g) => g.opening === 'Win3')).toBe(false);
   });
 
   it('rejects overlapping or out-of-range openings', () => {

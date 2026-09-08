@@ -1,4 +1,15 @@
 // Small constructors so the level specs read like the tables in the document.
+import { WINDOW_TYPES } from './global.js';
+
+/** Interior envelope of a level: from the wall thickness in to the far faces, per axis. */
+export function interiorOf(spec, wallThickness = 0.2) {
+  const [width, depth] = spec.size;
+  return { min: wallThickness, xMax: width - wallThickness, zMax: depth - wallThickness };
+}
+
+export function grossAreaOf(spec) {
+  return spec.size[0] * spec.size[1];
+}
 
 /**
  * A wall runs along `axis` ('x' or 'z') at centreline coordinate `at` on the other axis,
@@ -13,9 +24,19 @@ export function door(id, from, to, head, options = {}) {
   return { id, kind: 'door', from, to, sill: 0, head, leaf: options.leaf !== false, frame: Boolean(options.frame) };
 }
 
-/** `transom` adds a horizontal frame member at that height, for floor-to-ceiling glazing. */
+/**
+ * `transom` adds a horizontal frame member at that height, for floor-to-ceiling glazing.
+ * `open: true` makes a bare opening with neither pane nor frame, such as a balcony parapet.
+ */
 export function windowOpening(id, from, to, sill, head, options = {}) {
-  return { id, kind: 'window', from, to, sill, head, transom: options.transom ?? null };
+  return { id, kind: 'window', from, to, sill, head, transom: options.transom ?? null, open: Boolean(options.open) };
+}
+
+/** A window of one of the family's types, placed by its start along the wall. */
+export function windowOf(id, type, from) {
+  const size = WINDOW_TYPES[type];
+  if (!size) throw new Error(`No window type "${type}"`);
+  return { ...windowOpening(id, from, from + size.width, size.sill, size.head), type };
 }
 
 /**

@@ -1,10 +1,10 @@
 // Checks 2, 3, 4 and 11: headroom, stair alignment across levels, clear width, handrail.
-import { CHECKS, INTERIOR, PARTITION_THICKNESS, WALL_HEIGHT } from '../spec/global.js';
-import { roomRects } from '../spec/helpers.js';
-import { EPS, overlap, rectContains, rectsEqual, rectsOverlapInPlan } from '../model/box.js';
+import { CHECKS, PARTITION_THICKNESS, WALL_HEIGHT } from '../spec/global.js';
+import { interiorOf, roomRects } from '../spec/helpers.js';
+import { EPS, overlap, rectContains, rectsOverlapInPlan } from '../model/box.js';
 import { levelById } from '../model/house.js';
 import { findRoom } from '../model/level.js';
-import { handrailCentrelineY, nosings, pitch } from '../model/stair.js';
+import { handrailCentrelineY, mainTreads, nosings, pitch, starterRect } from '../model/stair.js';
 import { result } from './result.js';
 
 function treadRect(tread) {
@@ -28,20 +28,34 @@ export function checkHeadroom(house) {
   return result(2, 'Headroom over the flight', failures, [`${underSlab} tread(s) under a slab box`]);
 }
 
-/** The ground room the landing sits over, allowing for the partition along that room's edge. */
-function roomUnderLanding(ground, landing) {
-  return ground.spec.rooms.find((room) => {
-    const withPartitions = {
-      x: [room.x[0] - PARTITION_THICKNESS, room.x[1] + PARTITION_THICKNESS],
-      z: [room.z[0] - PARTITION_THICKNESS, room.z[1] + PARTITION_THICKNESS],
-    };
-    return rectContains(withPartitions, landing) && rectsOverlapInPlan(room, landing);
-  });
+const COVER_SAMPLES = 8;
+
+/** True when every point of `rect` lies in one of the room's rectangles, each grown by a partition. */
+function roomCovers(room, rect) {
+  const grown = roomRects(room).map((r) => ({
+    x: [r.x[0] - PARTITION_THICKNESS, r.x[1] + PARTITION_THICKNESS],
+    z: [r.z[0] - PARTITION_THICKNESS, r.z[1] + PARTITION_THICKNESS],
+  }));
+  for (let i = 0; i < COVER_SAMPLES; i++) {
+    for (let j = 0; j < COVER_SAMPLES; j++) {
+      const x = rect.x[0] + ((rect.x[1] - rect.x[0]) * (i + 0.5)) / COVER_SAMPLES;
+      const z = rect.z[0] + ((rect.z[1] - rect.z[0]) * (j + 0.5)) / COVER_SAMPLES;
+      const point = { x: [x, x], z: [z, z] };
+      if (!grown.some((r) => rectContains(r, point))) return false;
+    }
+  }
+  return true;
 }
 
-/** The strip the top riser lands on: the stair's width, from the interior face to the flight's top. */
+/** The ground room the landing sits over, allowing for the partition along that room's edge. */
+function roomUnderLanding(ground, landing) {
+  return ground.spec.rooms.find((room) => roomCovers(room, landing) && rectsOverlapInPlan(room, landing));
+}
+
+/** The strip the top riser lands on: the stair's width, one arrival depth north of the flight's top. */
 function arrivalRect(stair) {
-  return { x: stair.x, z: [INTERIOR.min, stair.bottomZ - stair.going * stair.treadCount] };
+  const top = stair.bottomZ - stair.going * stair.treadCount;
+  return { x: stair.x, z: [top - stair.arrivalDepth, top] };
 }
 
 export function checkStairAlignment(house) {
@@ -52,15 +66,24 @@ export function checkStairAlignment(house) {
   const stair = ground.spec.stair;
   const arrival = arrivalRect(stair);
   const failures = [];
-  if (!rectsEqual(stairRoom, voidRoom)) failures.push('the ground-level stair room and the first-level void do not coincide');
-  const flight = { x: stair.x, z: [stair.bottomZ - stair.going * stair.treadCount, stair.bottomZ] };
-  if (!rectContains(voidRoom, flight)) failures.push('the flight extends beyond the void');
+  // The void covers the stair room exactly, except that it may run on southward over the first
+  // level's overhang, where there is no ground room to leave uncovered.
+  const sameStrip = Math.abs(voidRoom.x[0] - stairRoom.x[0]) < EPS && Math.abs(voidRoom.x[1] - stairRoom.x[1]) < EPS && Math.abs(voidRoom.z[0] - stairRoom.z[0]) < EPS;
+  if (!sameStrip || voidRoom.z[1] < stairRoom.z[1] - EPS) failures.push('the first-level void does not cover the ground-level stair room');
+  const runsOn = voidRoom.z[1] > stairRoom.z[1] + EPS;
+  if (runsOn && stairRoom.z[1] < interiorOf(ground.spec).zMax - EPS) failures.push('the void runs past the stair room inside the ground level');
+  const flight = { x: stair.x, z: [stair.bottomZ - stair.going * stair.treadCount, stair.landing.z[1]] };
+  if (!rectContains(voidRoom, flight)) failures.push('the main flight and landing extend beyond the void');
+  // The starter leg is low enough to sit under the upper floor; it must never open into the void.
+  const starter = starterRect(stair);
+  if (rectsOverlapInPlan(voidRoom, starter)) failures.push('the starter leg opens into the void');
+  if (!first.spec.slabs.some((slab) => rectContains(slab, starter))) failures.push('no first-level slab covers the starter leg');
   const landingRoom = first.spec.rooms.find((room) => room.finish && roomRects(room).some((rect) => rectContains(rect, arrival)));
   if (!landingRoom) failures.push('no finished first-level room contains the stair arrival');
   const below = roomUnderLanding(ground, arrival);
   if (!below) failures.push('the stair arrival does not sit over a single ground-level room');
   return result(3, 'Stair void over the flight, arrival inside a room and over a room below', failures, [
-    `stair room x ${stairRoom.x.join('–')}, z ${stairRoom.z.join('–')}; arrival in ${landingRoom ? landingRoom.name.toLowerCase() : 'nothing'}, over ${below ? below.name.toLowerCase() : 'nothing'}`,
+    `stair room x ${stairRoom.x.join('–')}, z ${stairRoom.z.join('–')}; starter leg x ${starter.x.join('–')} under the upper floor; arrival in ${landingRoom ? landingRoom.name.toLowerCase() : 'nothing'}, over ${below ? below.name.toLowerCase() : 'nothing'}`,
   ]);
 }
 
@@ -82,15 +105,20 @@ export function checkStairWidth(house) {
   const east = flankWalls(ground, stair, 'east');
   const failures = [];
   if (Math.abs(width - 1.25) > EPS) failures.push(`clear width is ${width.toFixed(3)} m, not 1.25`);
-  if (west.length === 0) failures.push(`no wall face at x ${stair.x[0]} along the flight's west side`);
-  if (east.length === 0) failures.push(`no wall face at x ${stair.x[1]} along the flight's east side`);
+  // Each flank needs either a wall face or the guard on the open side.
+  const guarded = (side) => stair.guard?.side === side;
+  if (west.length === 0 && !guarded('west')) failures.push(`no wall face or guard at x ${stair.x[0]} along the flight's west side`);
+  if (east.length === 0 && !guarded('east')) failures.push(`no wall face or guard at x ${stair.x[1]} along the flight's east side`);
+  // Main treads and the landing stay inside the strip; starter treads stay inside their own leg.
+  const starter = starterRect(stair);
   for (const tread of ground.model.treads) {
-    if (tread.min[0] < stair.x[0] - EPS || tread.max[0] > stair.x[1] + EPS) {
-      failures.push(`tread ${tread.tread} spans x ${tread.min[0]}–${tread.max[0]}, outside ${stair.x[0]}–${stair.x[1]}`);
+    const strip = tread.id.startsWith('starter-') ? starter.x : stair.x;
+    if (tread.min[0] < strip[0] - EPS || tread.max[0] > strip[1] + EPS) {
+      failures.push(`step ${tread.tread} spans x ${tread.min[0]}–${tread.max[0]}, outside ${strip[0]}–${strip[1]}`);
     }
   }
   return result(4, 'Stair clear width', failures, [
-    `${west.join('/') || '?'} face ${stair.x[0].toFixed(2)}, ${east.join('/') || '?'} face ${stair.x[1].toFixed(2)}, width ${width.toFixed(2)} m`,
+    `${west.join('/') || (guarded('west') ? 'guard' : '?')} at ${stair.x[0].toFixed(2)}, ${east.join('/') || (guarded('east') ? 'guard' : '?')} at ${stair.x[1].toFixed(2)}, width ${width.toFixed(2)} m`,
   ]);
 }
 
@@ -107,9 +135,9 @@ export function checkHandrail(house) {
   }
   // The rail's underside at the north (highest) edge of each tread must clear that tread's top.
   const halfDepth = rail.section / 2 / Math.cos(Math.atan(pitch(stair)));
-  for (const tread of ground.model.treads) {
+  for (const tread of mainTreads(stair)) {
     const underside = handrailCentrelineY(stair, tread.min[2]) - halfDepth;
-    if (underside <= tread.max[1] + EPS) failures.push(`rail underside touches tread ${tread.tread}`);
+    if (underside <= tread.max[1] + EPS) failures.push(`rail underside touches step ${tread.tread}`);
   }
   const box = ground.model.handrail;
   return result(11, 'Handrail height and clearance', failures, [

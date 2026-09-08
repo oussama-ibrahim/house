@@ -13,11 +13,12 @@ import {
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { CAMERA, LIGHTING, VIEWPORT_HEIGHT } from '../spec/global.js';
+import { DEFAULT_DESIGN, DESIGN_IDS } from '../spec/designs.js';
 import { DEFAULT_LAYOUT, DEFAULT_TOGGLES, DEFAULT_VIEW_MODE, FIT_MARGIN, FIT_MARGIN_X, LAYOUTS, VIEW_MODES } from '../spec/presentation.js';
 import { DEFAULT_LANGUAGE, LANGUAGES } from '../i18n/index.js';
 import { boxCorners, fitCamera, orbitPosition } from '../model/camera.js';
-import { LEVEL_SPECS } from '../model/house.js';
-import { levelPlacement, roofPosition } from '../model/layout.js';
+import { levelSpecs } from '../model/house.js';
+import { levelPlacement, roofPosition, roofSize } from '../model/layout.js';
 import { roofBounds } from '../model/roof.js';
 import { nearExteriorWalls } from '../model/section.js';
 import { buildLevelScene, buildRoofGroup, rebuildLayers } from './build.js';
@@ -58,10 +59,10 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const translated = (points, [dx, dy, dz]) => points.map(([x, y, z]) => [x + dx, y + dy, z + dz]);
 
 /**
- * Owns the renderer, scene, camera and controls for the container. Both levels are built once;
- * view mode, section cut, layout, roof, text layers and level visibility are visibility and
- * position toggles. The camera fits itself to whatever is visible, at the spec's angles on load
- * and reset and at the user's angles after that.
+ * Owns the renderer, scene, camera and controls for the container. Every design's levels and roof
+ * are built once; design, view mode, section cut, layout, roof, text layers and level visibility
+ * are visibility and position toggles. The camera fits itself to whatever is visible, at the
+ * spec's angles on load and reset and at the user's angles after that.
  */
 export function createViewer(container, { language = DEFAULT_LANGUAGE } = {}) {
   const renderer = new WebGLRenderer({ antialias: true, alpha: true });
@@ -83,11 +84,18 @@ export function createViewer(container, { language = DEFAULT_LANGUAGE } = {}) {
   addLights(scene);
   addShadowPlane(scene);
   const materials = createMaterials();
-  const state = { levels: 'both', mode: DEFAULT_VIEW_MODE, layout: DEFAULT_LAYOUT, language, ...DEFAULT_TOGGLES };
-  const levels = LEVEL_SPECS.map((spec) => buildLevelScene(spec, materials, state.language));
-  for (const level of levels) scene.add(level.group);
-  const roof = buildRoofGroup(materials);
-  scene.add(roof);
+  const state = { design: DEFAULT_DESIGN, levels: 'both', mode: DEFAULT_VIEW_MODE, layout: DEFAULT_LAYOUT, language, ...DEFAULT_TOGGLES };
+
+  const designs = Object.fromEntries(
+    DESIGN_IDS.map((id) => {
+      const levels = levelSpecs(id).map((spec) => buildLevelScene(spec, materials, state.language));
+      const roof = buildRoofGroup(materials, roofSize(id));
+      for (const level of levels) scene.add(level.group);
+      scene.add(roof);
+      return [id, { id, levels, roof }];
+    }),
+  );
+  const active = () => designs[state.design];
   let frame = 0;
 
   function requestRender() {
@@ -105,7 +113,7 @@ export function createViewer(container, { language = DEFAULT_LANGUAGE } = {}) {
   function applyWallMode() {
     const mode = effectiveMode();
     const cameraPosition = camera.position.toArray();
-    for (const level of levels) {
+    for (const level of active().levels) {
       const near = new Set(mode === 'section' ? nearExteriorWalls(level.spec, level.group.position.toArray(), cameraPosition) : []);
       level.partitions.full.visible = mode === 'full';
       level.partitions.cut.visible = mode !== 'full';
@@ -120,33 +128,38 @@ export function createViewer(container, { language = DEFAULT_LANGUAGE } = {}) {
   }
 
   function applyLayout() {
-    for (const level of levels) level.group.position.set(...levelPlacement(state.layout, level.spec.id));
-    roof.position.set(...roofPosition(state.layout));
+    const design = active();
+    for (const level of design.levels) level.group.position.set(...levelPlacement(state.layout, level.spec.id, design.id));
+    design.roof.position.set(...roofPosition(state.layout, design.id));
   }
 
   function applyVisibility() {
     const assembled = state.layout === 'assembled';
-    for (const level of levels) {
-      level.group.visible = state.levels === 'both' || state.levels === level.spec.id;
-      // Interior text has no place on the house seen from outside.
-      level.layers.labels.visible = state.labels && !assembled;
-      level.layers.dimensions.visible = state.dimensions && !assembled;
+    for (const design of Object.values(designs)) {
+      const current = design.id === state.design;
+      for (const level of design.levels) {
+        level.group.visible = current && (state.levels === 'both' || state.levels === level.spec.id);
+        // Interior text has no place on the house seen from outside.
+        level.layers.labels.visible = state.labels && !assembled;
+        level.layers.dimensions.visible = state.dimensions && !assembled;
+      }
+      // The lifted roof belongs to the exploded view of the whole house, and the assembled house
+      // always wears it; over a single exploded level it only hides rooms.
+      design.roof.visible = current && (assembled ? state.levels === 'both' || state.levels === 'first' : state.roof && state.levels === 'both');
     }
-    // The lifted roof belongs to the exploded view of the whole house, and the assembled house
-    // always wears it; over a single exploded level it only hides rooms.
-    roof.visible = assembled ? state.levels === 'both' || state.levels === 'first' : state.roof && state.levels === 'both';
     labelRenderer.domElement.hidden = !(state.labels || state.dimensions) || assembled;
   }
 
   function visiblePoints() {
+    const design = active();
     const points = [];
-    for (const level of levels) {
+    for (const level of design.levels) {
       if (!level.group.visible) continue;
       const offset = level.group.position.toArray();
       points.push(...translated(level.fitPoints.built, offset));
       if (level.layers.labels.visible || level.layers.dimensions.visible) points.push(...translated(level.fitPoints.annotations, offset));
     }
-    if (roof.visible) points.push(...boxCorners(roofBounds(roof.position.toArray())));
+    if (design.roof.visible) points.push(...boxCorners(roofBounds(design.roof.position.toArray(), roofSize(design.id))));
     return points;
   }
 
@@ -199,6 +212,12 @@ export function createViewer(container, { language = DEFAULT_LANGUAGE } = {}) {
   resetView();
 
   return {
+    setDesign(id) {
+      if (!DESIGN_IDS.includes(id)) throw new Error(`Unknown design "${id}"`);
+      state.design = id;
+      applyLayout();
+      refit();
+    },
     setLevels(mode) {
       state.levels = mode;
       refit();
@@ -230,11 +249,16 @@ export function createViewer(container, { language = DEFAULT_LANGUAGE } = {}) {
     setLanguage(next) {
       if (!LANGUAGES.includes(next)) throw new Error(`Unknown language "${next}"`);
       state.language = next;
-      for (const level of levels) rebuildLayers(level, materials, next);
+      for (const design of Object.values(designs)) for (const level of design.levels) rebuildLayers(level, materials, next);
       applyVisibility();
       requestRender();
     },
     resetView,
+    /** Refits the view at the given angles; either angle falls back to the spec's default. */
+    setAngles({ azimuth = CAMERA.azimuth, polar = CAMERA.polar } = {}) {
+      applyVisibility();
+      fitView({ azimuth, polar });
+    },
     getState: () => ({ ...state }),
     dispose() {
       observer.disconnect();

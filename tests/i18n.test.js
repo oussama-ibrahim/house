@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { UI, LANGUAGES, metres, sceneDictionary, t, ui } from '../src/i18n/index.js';
-import { LEVEL_SPECS } from '../src/model/house.js';
+import { DESIGN_IDS } from '../src/spec/designs.js';
+import { levelSpecs } from '../src/model/house.js';
+
+const LEVEL_SPECS = DESIGN_IDS.flatMap((design) => levelSpecs(design));
 
 describe('translations', () => {
   it('has every UI string in every language', () => {

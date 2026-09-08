@@ -1,5 +1,6 @@
 // Prints the build specification as Markdown, generated from the spec data so the tables can
-// never drift from what the model builds and the checks measure. Usage: npm run spec-doc > scope-v3.md
+// never drift from what the model builds and the checks measure.
+// Usage: npm run spec-doc > scope-v3.md   (an optional design id selects a registry entry)
 import {
   CAMERA,
   CHECKS,
@@ -7,21 +8,25 @@ import {
   CUTAWAY_WALL_HEIGHT,
   EXTERIOR_WALL_THICKNESS,
   FLOOR_TO_FLOOR,
-  FOOTPRINT,
   GLAZING_OPACITY,
-  GROSS_AREA,
   INTERIOR,
   PARTITION_THICKNESS,
   SLAB_THICKNESS,
   WALL_HEIGHT,
+  WINDOW_TYPES,
   WORLD_PLACEMENT,
 } from '../src/spec/global.js';
 import { roomRects } from '../src/spec/helpers.js';
 import { STAIR } from '../src/spec/stair.js';
 import { boxFromPart } from '../src/model/box.js';
 import { roomArea } from '../src/model/floors.js';
-import { LEVEL_SPECS } from '../src/model/house.js';
-import { handrailBox, handrailCentrelineY } from '../src/model/stair.js';
+import { designById } from '../src/spec/designs.js';
+import { grossAreaOf, interiorOf } from '../src/spec/helpers.js';
+import { levelSpecs } from '../src/model/house.js';
+import { handrailBox, handrailCentrelineY, landingHeight, starterRect, stringerBoxes } from '../src/model/stair.js';
+
+const DESIGN = designById(process.argv[2] ?? 'a');
+const LEVEL_SPECS = levelSpecs(DESIGN.id);
 
 const m = (value) => value.toFixed(2);
 const range = ([a, b]) => `${m(a)} – ${m(b)}`;
@@ -76,7 +81,7 @@ function roomsSection(spec) {
     '',
     table(['Room', 'Extent', 'Finish', 'Net m²'], rows),
     '',
-    `Gross ${GROSS_AREA.toFixed(2)} m² to the exterior face; net ${net.toFixed(2)} m² (table ${spec.netArea.toFixed(1)}).`,
+    `Footprint ${m(spec.size[0])} × ${m(spec.size[1])} m, gross ${grossAreaOf(spec).toFixed(2)} m² to the exterior face; net ${net.toFixed(2)} m² (table ${spec.netArea.toFixed(1)}).`,
   ].join('\n');
 }
 
@@ -135,40 +140,51 @@ function levelSection(spec, index) {
   ].join('\n');
 }
 
+/** How far the first level's slab cantilevers over the street beyond the ground level's south face. */
+function overhangNote() {
+  const [ground, first] = LEVEL_SPECS;
+  const overhang = first.size[1] - ground.size[1];
+  if (overhang <= 0) return 'Both levels are the same depth.';
+  return `**Overhang.** The first level is ${m(overhang)} m deeper than the ground level: its slab cantilevers that far over the street beyond the ground level's south face. Both levels keep their origin at the shared north-west corner, so the stair void and the arrival use the same z coordinates on both.`;
+}
+
 function stairSection() {
   const rail = STAIR.handrail;
   const box = handrailBox(STAIR);
+  const base = landingHeight(STAIR);
+  const starter = starterRect(STAIR);
   const topZ = STAIR.bottomZ - STAIR.going * STAIR.treadCount;
+  const totalRisers = STAIR.starter.risers + STAIR.risers;
   return [
     '## Part 3 — Staircase',
     '',
-    'This governs both levels. Build it first.',
+    'This governs both levels. Build it first. A quarter-turn stair: a starter leg along the front wall, a landing in the south-east corner, then the main flight north against the party wall.',
     '',
     table(['Item', 'Value'], [
-      ['Strip', `x ${range(STAIR.x)}, clear width ${m(STAIR.x[1] - STAIR.x[0])} m`],
-      ['Direction', `climbs northward, bottom at z = ${m(STAIR.bottomZ)}`],
-      ['Risers', `${STAIR.risers} × ${STAIR.riser.toFixed(3)} = ${(STAIR.risers * STAIR.riser).toFixed(3)} m`],
-      ['Treads', `${STAIR.treadCount} × ${STAIR.going.toFixed(3)} = ${(STAIR.treadCount * STAIR.going).toFixed(3)} m run`],
-      ['Flight extent', `z ${range([topZ, STAIR.bottomZ])}`],
-      ['Tread *n* (n = 1…15)', `x ${range(STAIR.x)}, z from \`${m(STAIR.bottomZ)} − ${m(STAIR.going)}n\` to \`${m(STAIR.bottomZ)} − ${m(STAIR.going)}(n−1)\`, top at y = \`${m(STAIR.riser)}n\``],
-      ['Top of flight', `tread 15 top at y ${m(STAIR.riser * 15)}, z ${range([topZ, topZ + STAIR.going])}; riser 16 lands on the upper floor at y ${m(FLOOR_TO_FLOOR)}`],
+      ['Risers', `${totalRisers} × ${STAIR.riser.toFixed(3)} = ${(totalRisers * STAIR.riser).toFixed(3)} m: ${STAIR.starter.risers} up to the landing, ${STAIR.risers} on the main flight`],
+      ['Starter leg', `climbs eastward from x ${m(starter.x[0])} to ${m(starter.x[1])}, z ${range(starter.z)}; ${STAIR.starter.risers - 1} treads of ${STAIR.starter.going.toFixed(3)} m, tops at y = \`${m(STAIR.riser)}n\`, approached head-on from the living room`],
+      ['Landing', `x ${range(STAIR.x)}, z ${range(STAIR.landing.z)}, top at y ${m(base)}, solid to the floor`],
+      ['Main flight strip', `x ${range(STAIR.x)}, clear width ${m(STAIR.x[1] - STAIR.x[0])} m`],
+      ['Main flight', `climbs northward from the landing, bottom at z = ${m(STAIR.bottomZ)}; ${STAIR.treadCount} × ${STAIR.going.toFixed(3)} = ${(STAIR.treadCount * STAIR.going).toFixed(3)} m run, extent z ${range([topZ, STAIR.bottomZ])}`],
+      [`Main tread *n* (n = 1…${STAIR.treadCount})`, `x ${range(STAIR.x)}, z from \`${m(STAIR.bottomZ)} − ${m(STAIR.going)}n\` to \`${m(STAIR.bottomZ)} − ${m(STAIR.going)}(n−1)\`, top at y = \`${m(base)} + ${m(STAIR.riser)}n\``],
+      ['Top of flight', `main tread ${STAIR.treadCount} top at y ${m(base + STAIR.riser * STAIR.treadCount)}, z ${range([topZ, topZ + STAIR.going])}; riser ${totalRisers} lands on the upper floor at y ${m(FLOOR_TO_FLOOR)}`],
     ]),
     '',
-    `Model each tread as a box from y = \`max(0, ${m(STAIR.riser)}n − ${m(STAIR.underside)})\` to \`${m(STAIR.riser)}n\`: a cast flight one riser plus a ${m(STAIR.underside - STAIR.riser)} m waist thick, so the space under the upper treads is free. Only tread 15 rises above the 2.60 m wall height, topping out at 2.70 inside the slab zone; do not clip it.`,
+    `**Steel stair.** Every tread is a ${m(STAIR.steel.treadThickness)} m plate in ${STAIR.steel.treadMaterial} with open risers, carried on ${m(STAIR.steel.stringer.depth)} × ${m(STAIR.steel.stringer.thickness)} steel stringers whose top edge runs ${m(STAIR.steel.stringer.belowNosing)} m under the nosing line: two under the main flight at x ${stringerBoxes(STAIR).slice(0, 2).map((s) => m(s.centre[0])).join(' and ')}, from the landing to the slab edge, and two under the starter leg at z ${stringerBoxes(STAIR).slice(2).map((s) => m(s.centre[2])).join(' and ')}. The landing is a plate at y ${m(base)} on a ${m(STAIR.steel.stringer.depth)} m frame carried by four ${m(STAIR.guard.post)} m posts. Only the top main tread rises above the ${m(WALL_HEIGHT)} m wall height, topping out at ${m(base + STAIR.riser * STAIR.treadCount)} inside the slab zone; do not clip it.`,
     '',
-    `**Store under the stair.** The wedge under the upper treads, x ${range(LEVEL_SPECS[0].understair.x)}, z ${range(LEVEL_SPECS[0].understair.z)}, is a cupboard reached from the living room through ${LEVEL_SPECS[0].understair.door} in P3. Its soffit runs from 2.30 m at the top end down to 1.20 m at z ${m(LEVEL_SPECS[0].understair.z[1])}; the door head must clear the soffit over the door's whole width.`,
+    `**Under the stair.** Open to the living room under both legs and the landing: no wall along the main flight's west side, only the guard. The TV unit stands against the party wall under the high end of the flight.`,
     '',
-    `**Headroom.** The underside of the upper slab is at ${m(WALL_HEIGHT)}. A tread needs ${m(CHECKS.minHeadroom)} m clear, so only treads with a top at or below ${m(WALL_HEIGHT - CHECKS.minHeadroom)} m may sit under a slab. The void covers the entire flight, so no tread is under a slab.`,
+    `**Headroom.** The underside of the upper slab is at ${m(WALL_HEIGHT)}. A step needs ${m(CHECKS.minHeadroom)} m clear, so only steps with a top at or below ${m(WALL_HEIGHT - CHECKS.minHeadroom)} m may sit under a slab: the starter leg does, under bedroom 1's floor. The void covers the landing and the whole main flight.`,
     '',
-    `**Arrival.** Riser 16 lands at z = ${m(topZ)}, stepping north onto the landing at x ${range(STAIR.x)}, z ${range([INTERIOR.min, topZ])}. The whole north edge of the void is the arrival opening; no railing there. The flight is enclosed by the ${rail.side} wall on one side and a full-height partition on the other.`,
+    `**Arrival.** Riser ${totalRisers} lands at z = ${m(topZ)}, stepping north onto the landing at x ${range(STAIR.x)}, z ${range([topZ - STAIR.arrivalDepth, topZ])}, kept clear one flight width deep. The whole north edge of the void is the arrival opening; no railing there. The main flight has the ${rail.side} wall on one side and, on the ${STAIR.guard.side}, a guard of ${m(STAIR.guard.post)} m posts on every ${STAIR.guard.postEvery === 3 ? 'third' : `${STAIR.guard.postEvery}th`} tread under a ${m(STAIR.guard.section)} m rail at handrail height; the starter leg carries the same guard along its open north side, and the two rails meet at a newel on the landing's corner.`,
     '',
     '### Handrail',
     '',
     table(['Item', 'Value'], [
       ['Wall', `${rail.side} wall, centreline x ${m(box.centre[0])} (${m(rail.wallOffset)} off the face)`],
       ['Section', `${m(rail.section)} × ${m(rail.section)}`],
-      ['Extent', `z ${m(rail.zFrom)} to z ${m(rail.zTo)}`],
-      ['Height', `centreline ${m(rail.aboveNosing)} above the nosing line: \`y = ${m(STAIR.riser / STAIR.going)} × (${m(STAIR.bottomZ)} − z) + ${m(STAIR.riser + rail.aboveNosing)}\``],
+      ['Extent', `z ${m(rail.zFrom)} to z ${m(rail.zTo)}, the main flight only`],
+      ['Height', `centreline ${m(rail.aboveNosing)} above the nosing line: \`y = ${m(STAIR.riser / STAIR.going)} × (${m(STAIR.bottomZ)} − z) + ${m(base + STAIR.riser + rail.aboveNosing)}\``],
       ['Box', `length ${box.size[2].toFixed(3)} m, centre (${box.centre.map(m).join(', ')}), \`rotation.x = +${box.rotationX.toFixed(4)} rad\`, north end high`],
     ]),
     '',
@@ -185,14 +201,14 @@ function checksSection() {
     '',
     'Run these as assertions, not as a reading exercise. `npm test` runs all of them; `npm run check` prints the report.',
     '',
-    `1. Gross area per level = ${GROSS_AREA.toFixed(2)} m². Net areas match the room tables within ${CHECKS.netAreaTolerance} m².`,
-    `2. For every tread *n*, if any slab box overlaps that tread's x–z extent, then \`${m(WALL_HEIGHT)} − ${m(STAIR.riser)}n ≥ ${m(CHECKS.minHeadroom)}\`. With the void over the whole flight this passes vacuously; assert it anyway.`,
-    '3. The ground-level stair room and the first-level void coincide, the flight lies within the void, and the landing sits over a single ground-level room (allowing for the partition along its edge).',
-    `4. The stair strip is ${m(STAIR.x[1] - STAIR.x[0])} m clear between wall faces on both flanks, and no tread box extends outside it.`,
+    `1. Gross area per level = footprint width × depth (${LEVEL_SPECS.map((spec) => `${spec.name.toLowerCase()} ${grossAreaOf(spec).toFixed(2)} m²`).join(', ')}). Net areas match the room tables within ${CHECKS.netAreaTolerance} m².`,
+    `2. For every step, if any slab box overlaps its x–z extent, its top must leave ${m(CHECKS.minHeadroom)} m under the ${m(WALL_HEIGHT)} m slab underside. The starter leg sits under bedroom 1's floor; the landing and the main flight are under the void.`,
+    '3. The first-level void covers the ground-level stair room exactly, running on only over the overhang as a light well; the landing and main flight lie within it, the starter leg lies outside it under a slab, and the arrival sits over a single ground-level room (allowing for the partition along its edge).',
+    `4. The main flight strip is ${m(STAIR.x[1] - STAIR.x[0])} m clear, a wall face or the guard on each flank, and no step box extends outside its leg.`,
     `5. No furniture bounding box intersects any wall box. A furniture box may touch a wall face only where its \`Touches\` column says so; elsewhere the minimum gap is ${m(CHECKS.minWallGap)} m.`,
     '6. No furniture bounding box intersects any clear zone.',
     `7. No opaque furniture box intersects the vertical prism of any window opening: the opening span × sill-to-head height × ${m(CHECKS.windowPrismDepth)} m into the room. Transparent elements (glazing, shower screens, the handrail) are exempt.`,
-    `8. Every partition is clipped to ${m(INTERIOR.min)} ≤ x, z ≤ ${m(INTERIOR.max)}, so no partition end face is coplanar with a facade.`,
+    `8. Every partition is clipped to the level's interior envelope (${m(INTERIOR.min)} in from every facade), so no partition end face is coplanar with a facade.`,
     `9. Visibility. Sample a ${CHECKS.visibilityGrid} × ${CHECKS.visibilityGrid} grid on each target's top face and cast a ray to the default camera in cutaway mode (every wall at ${m(CUTAWAY_WALL_HEIGHT)} m). Occluders are wall, slab and tread boxes only. Assert ${CHECKS.minVisibility} % or more unobstructed. Expected: ${expectedVisibility.join(', ')}.`,
     `10. In front of each wardrobe, WC and shower entry, over the full width, the clear distance to the nearest furniture or wall is at least ${m(CHECKS.minClearance)} m (expected values in the clearance tables).`,
     `11. The handrail centreline is ${m(STAIR.handrail.aboveNosing)} m above every tread nosing, and its underside clears every tread.`,
@@ -200,9 +216,9 @@ function checksSection() {
 }
 
 const parts = [
-  '# 3D house model — build spec v3',
+  `# 3D house model — build spec v3, ${DESIGN.name}`,
   '',
-  `Two-storey house, ${m(FOOTPRINT)} × ${m(FOOTPRINT)} m per level, ${GROSS_AREA.toFixed(2)} m² gross each. This document is generated from the model's spec data (\`npm run spec-doc\`); it supersedes v2.1.`,
+  `Two-storey house: ${LEVEL_SPECS.map((spec) => `${spec.name.toLowerCase()} ${m(spec.size[0])} × ${m(spec.size[1])} m (${grossAreaOf(spec).toFixed(2)} m² gross)`).join(', ')}. This document is generated from the model's spec data (\`npm run spec-doc${DESIGN.id === 'a' ? '' : ` ${DESIGN.id}`}\`); it supersedes v2.1.`,
   '',
   '**Site constraint.** The east wall stands against the neighbouring house (on the right, seen from the street). It carries no windows on the ground level; the first level may have them. The stair runs along it.',
   '',
@@ -225,9 +241,7 @@ const parts = [
   '## Part 2 — Global',
   '',
   table(['Item', 'Value'], [
-    ['Exterior footprint', `${m(FOOTPRINT)} × ${m(FOOTPRINT)} m`],
-    ['Gross area per level', `${GROSS_AREA.toFixed(2)} m²`],
-    ['Interior envelope', `${m(INTERIOR.max - INTERIOR.min)} × ${m(INTERIOR.max - INTERIOR.min)} m, i.e. x and z from ${m(INTERIOR.min)} to ${m(INTERIOR.max)}`],
+    ...LEVEL_SPECS.map((spec) => [`Footprint, ${spec.name.toLowerCase()}`, `${m(spec.size[0])} × ${m(spec.size[1])} m, ${grossAreaOf(spec).toFixed(2)} m² gross; interior x ${m(interiorOf(spec).min)}–${m(interiorOf(spec).xMax)}, z ${m(interiorOf(spec).min)}–${m(interiorOf(spec).zMax)}`]),
     ['Exterior wall thickness', `${m(EXTERIOR_WALL_THICKNESS)} m`],
     ['Interior partition thickness', `${m(PARTITION_THICKNESS)} m`],
     ['Wall height, floor to underside of slab', `${m(WALL_HEIGHT)} m`],
@@ -236,11 +250,24 @@ const parts = [
     ['Cutaway wall height', `${m(CUTAWAY_WALL_HEIGHT)} m`],
   ]),
   '',
-  `Exterior wall centrelines: north z = 0.10, south z = ${m(FOOTPRINT - 0.1)}, west x = 0.10, east x = ${m(FOOTPRINT - 0.1)}. Finished interior faces are at ${m(INTERIOR.min)} and ${m(INTERIOR.max)}. North and south walls run the full footprint; west and east butt against them.`,
+  `Exterior wall centrelines sit ${m(EXTERIOR_WALL_THICKNESS / 2)} in from each facade; finished interior faces ${m(INTERIOR.min)} in. North and south walls run the full width; west and east butt against them.`,
+  '',
+  overhangNote(),
+  '',
+  '### Window family',
+  '',
+  'Every window is one of these types; a level chooses only where each starts along its wall. Heads share one line, a 0.20 m lintel under the slab.',
+  '',
+  table(['Type', 'Width', 'Sill', 'Head', 'Used for'], [
+    ['room', m(WINDOW_TYPES.room.width), m(WINDOW_TYPES.room.sill), m(WINDOW_TYPES.room.head), 'living room and bedrooms, sofa and bed height beneath'],
+    ['high', m(WINDOW_TYPES.high.width), m(WINDOW_TYPES.high.sill), m(WINDOW_TYPES.high.head), 'WC, shower room, landing'],
+    ['kitchen', m(WINDOW_TYPES.kitchen.width), m(WINDOW_TYPES.kitchen.sill), m(WINDOW_TYPES.kitchen.head), 'over the worktop'],
+    ['stair', m(WINDOW_TYPES.stair.width), m(WINDOW_TYPES.stair.sill), m(WINDOW_TYPES.stair.head), 'the pair on the front wall, one per level; the lower one fixed laminated glass over the landing'],
+  ]),
   '',
   `**Y convention.** Per level, y = 0 is the finished floor surface. The slab occupies y −${m(SLAB_THICKNESS)} to 0.00. Walls run y 0.00 to ${m(WALL_HEIGHT)}. Both levels are modelled at the same y, side by side.`,
   '',
-  `**World placement.** Build each level in local coordinates 0–${FOOTPRINT}, then place the ground group at world (${WORLD_PLACEMENT.ground.join(', ')}) and the first-floor group at (${WORLD_PLACEMENT.first.join(', ')}).`,
+  `**World placement.** Build each level in local coordinates from its north-west corner, then place the ground group at world (${WORLD_PLACEMENT.ground.join(', ')}) and the first-floor group at (${WORLD_PLACEMENT.first.join(', ')}).`,
   '',
   stairSection(),
   '',

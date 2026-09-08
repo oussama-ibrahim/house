@@ -55,7 +55,7 @@ export function buildDimensionLayer(level, materials, language) {
   for (const dimension of dimensionLines(level.spec)) {
     group.add(line([dimension.from, dimension.to], materials.leader));
     for (const tick of dimension.ticks) group.add(line(tick, materials.leader));
-    group.add(labelObject(textElement('dim', [['dim__text', metres(6, language)]]), dimension.middle));
+    group.add(labelObject(textElement('dim', [['dim__text', metres(dimension.length, language)]]), dimension.middle));
   }
 
   for (const room of roomDimensions(level.spec)) {

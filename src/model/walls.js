@@ -2,7 +2,7 @@
 // lintel block above each opening. Openings may touch a wall end or each other: the pier between
 // them is then zero-length and is simply not emitted, never a degenerate box. Windows also get a
 // pane and a black frame; a leafless door gets a frame when the spec asks for one.
-import { FOOTPRINT, GLAZING_THICKNESS } from '../spec/global.js';
+import { GLAZING_THICKNESS } from '../spec/global.js';
 import { FRAME } from '../spec/presentation.js';
 import { box, EPS } from './box.js';
 import { SpecError } from './errors.js';
@@ -101,7 +101,8 @@ export function splitWall(wall, height) {
     if (opening.head < height - EPS) {
       solids.push(segmentBox(`${wall.id}:${opening.id}:lintel`, wall, span, [opening.head, height], 'wall', { wall: wall.id, role: 'lintel' }));
     }
-    if (opening.kind === 'window' && opening.sill < height - EPS) {
+    const glazed = opening.kind === 'window' && !opening.open;
+    if (glazed && opening.sill < height - EPS) {
       const pane = { ...wall, thickness: GLAZING_THICKNESS };
       glazing.push(segmentBox(`${wall.id}:${opening.id}:glazing`, pane, span, [opening.sill, Math.min(opening.head, height)], 'glazing', {
         wall: wall.id,
@@ -109,7 +110,7 @@ export function splitWall(wall, height) {
         opening: opening.id,
       }));
     }
-    if (opening.kind === 'window' || opening.frame) frames.push(...frameMembers(wall, opening, height));
+    if (glazed || opening.frame) frames.push(...frameMembers(wall, opening, height));
     cursor = opening.to;
   }
   emitPier(cursor, wall.to);
@@ -126,7 +127,9 @@ export function wallFace(wall, side) {
 /** Unit vector pointing out of the building through an exterior wall. */
 export function outwardNormal(wall) {
   if (!wall.exterior) throw new SpecError(`${wall.id} is a partition and has no outward side`);
-  const outward = wall.at < FOOTPRINT / 2 ? -1 : 1;
+  // Exterior walls sit half a thickness in from the facade, so the one within a thickness of the
+  // origin is the north or west wall and faces the negative way; every other one faces positive.
+  const outward = wall.at < wall.thickness ? -1 : 1;
   return wall.axis === 'x' ? [0, 0, outward] : [outward, 0, 0];
 }
 
