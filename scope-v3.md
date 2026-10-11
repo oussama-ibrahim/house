@@ -235,7 +235,7 @@ Footprint 6.15 × 8.20 m, gross 50.43 m² to the exterior face; net 43.21 m² (t
 | Win11 | south, z 8.10 | x 0.60 – 2.40 | 1.80 | 0.90 | 2.40 | window |
 | Win8 | west, x 0.10 | z 0.50 – 2.30 | 1.80 | 0.90 | 2.40 | window |
 | Win14 | west, x 0.10 | z 4.70 – 6.50 | 1.80 | 0.90 | 2.40 | window |
-| Win13 | east, x 6.05 | z 1.80 – 2.60 | 0.80 | 1.20 | 2.40 | window |
+| D13 | east, x 6.05 | z 1.75 – 2.65 | 0.90 | 0.00 | 2.40 | opening, no leaf |
 | D6 | P5, x 3.60 | z 3.00 – 3.80 | 0.80 | 0.00 | 2.05 | door |
 | D7 | P7, z 4.10 | x 3.75 – 4.55 | 0.80 | 0.00 | 2.05 | door |
 | D11 | P9, z 1.65 | x 4.65 – 5.35 | 0.70 | 0.00 | 2.05 | door |

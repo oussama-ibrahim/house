@@ -3,6 +3,7 @@ import { EPS } from '../src/model/box.js';
 import { buildHouse, levelById } from '../src/model/house.js';
 import { FRONT_LINE } from '../src/spec/facades.js';
 import { FLOOR_TO_FLOOR, FOOTPRINT, WALL_HEIGHT } from '../src/spec/global.js';
+import { openingOf } from './support.js';
 
 describe("the parents' garage", () => {
   const { spec, model } = levelById(buildHouse({ cutaway: false }), 'ground');
@@ -62,5 +63,33 @@ describe("the parents' garage", () => {
     expect(rowZ(lights(model.neighbours, 'garageLights'))).toEqual(rowZ(lights(house.facadeDressing, 'soffitLights')));
     const panel = lights(model.neighbours, 'garageBayPanel');
     for (const box of panel) expect(box.min[2]).toBeCloseTo(FOOTPRINT.depth);
+  });
+});
+
+describe('the terrace on the garage roof', () => {
+  const house = buildHouse({ cutaway: false });
+  const first = levelById(house, 'first');
+  const garage = levelById(house, 'ground').model.neighbours;
+  const door = openingOf(first.spec, 'east', 'D13');
+  const roof = garage.find((entry) => entry.piece.id === 'garage').boxes.find((b) => b.min[1] >= WALL_HEIGHT - EPS);
+  const parapet = garage.find((entry) => entry.piece.id === 'garageParapet').boxes;
+
+  it('opens off the landing through a sliding glass door at least 0.90 m wide', () => {
+    expect(door.kind).toBe('door');
+    expect(door.sill).toBe(0);
+    expect(door.to - door.from).toBeGreaterThanOrEqual(0.9 - EPS);
+    const landing = first.spec.rooms.find((r) => r.id === 'landing');
+    expect(door.from).toBeGreaterThanOrEqual(landing.z[0] - EPS);
+    expect(door.to).toBeLessThanOrEqual(landing.z[1] + EPS);
+  });
+
+  it('steps out level: the garage roof is flush with the first floor', () => {
+    expect(roof.max[1]).toBeCloseTo(FLOOR_TO_FLOOR);
+    expect(door.from).toBeGreaterThanOrEqual(roof.min[2]);
+    expect(door.to).toBeLessThanOrEqual(roof.max[2]);
+  });
+
+  it('is guarded by the 1 m parapet', () => {
+    for (const box of parapet) expect(box.max[1] - roof.max[1]).toBeGreaterThanOrEqual(1.0 - EPS);
   });
 });

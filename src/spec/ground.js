@@ -28,6 +28,7 @@ import {
   part,
   piece,
   room,
+  slidingLeafParts,
   visibilityTarget,
   wall,
   windowOf,
@@ -60,21 +61,6 @@ const NICHE = Object.freeze({ x: [COLUMN.x[0], COLUMN.x[1] - NICHE_BACK], z: [HA
 /** A part filling the niche's plan, `h` high from `y0`. */
 function nichePart(h, y0 = 0) {
   return part(extent(NICHE.x), extent(NICHE.z), h, midpoint(NICHE.x), midpoint(NICHE.z), y0);
-}
-
-/** The sliding glass door's leaf, a pane in a frame, parked open over the fixed pane. */
-function slidingLeafParts() {
-  const width = extent(GLASS_DOOR.x);
-  const x = GLASS_DOOR.x[0] - width / 2;
-  const { z } = GLASS_DOOR;
-  const frame = { material: 'frame' };
-  return [
-    part(width, 0.02, 2.55, x, z),
-    part(0.05, 0.04, 2.55, x - width / 2 + 0.025, z, 0, frame),
-    part(0.05, 0.04, 2.55, x + width / 2 - 0.025, z, 0, frame),
-    part(width, 0.04, 0.05, x, z, 2.5, frame),
-    part(width, 0.04, 0.05, x, z, 0, frame),
-  ];
 }
 
 // The street wall's window and door, shared with the street front dressed round them.
@@ -265,7 +251,7 @@ export const GROUND = Object.freeze({
     ]),
     // The glass door hangs from a track on the beam on the living side and parks slid open over the
     // fixed pane and the column's face.
-    piece('slidingLeaf', 'Kitchen sliding glass door, open', 'glazing', slidingLeafParts(), { transparent: true }),
+    piece('slidingLeaf', 'Kitchen sliding glass door, open', 'glazing', slidingLeafParts('x', [GLASS_DOOR.x[0] - extent(GLASS_DOOR.x), GLASS_DOOR.x[0]], GLASS_DOOR.z, 2.55), { transparent: true }),
   ],
 
   // Offsets fan the pins outward; from the default south-east camera, north reads as up-right,

@@ -5,6 +5,8 @@
 // party wall to bedroom 1's door; bedroom 2 opens off its west side. The level projects 1 m over
 // the street; the stair void is the slab opening as built, 3.00 m long, and the 1.80 m between it
 // and the street wall belongs to bedroom 1, with a full-width dressing built into the street wall.
+// A sliding glass door off the landing opens east onto the parents' garage roof, used as a terrace:
+// the roof's top is this floor's level and its 1 m parapet is the guard.
 import { firstFront } from './facades.js';
 import { COLUMN, COLUMN_FRONT, EXTERIOR_WALL_THICKNESS, PARTITION_THICKNESS, SLAB_OPENING, UPPER_FOOTPRINT, UPPER_INTERIOR, WALL_HEIGHT } from './global.js';
 import {
@@ -18,6 +20,7 @@ import {
   part,
   piece,
   room,
+  slidingLeafParts,
   visibilityTarget,
   wall,
   windowOf,
@@ -62,8 +65,20 @@ function dressing2Parts() {
 // The void is the slab opening as built.
 const [VOID_START, VOID_END] = SLAB_OPENING.z;
 
+// The terrace door in the east wall, just north of the stair arrival and clear of the shower room's
+// door: 0.90 m, its head on the window family's line. It slides, so no leaf swings across the landing.
+const TERRACE_DOOR = Object.freeze({ z: Object.freeze([1.75, 2.65]), head: 2.4 });
+// Its leaf runs on the east wall's outer face, drawn slid open south over the wall.
+const TERRACE_LEAF = piece('slidingLeafD13', 'Terrace sliding glass door, open', 'glazing', slidingLeafParts(
+  'z',
+  [TERRACE_DOOR.z[1], TERRACE_DOOR.z[1] + extent(TERRACE_DOOR.z)],
+  WIDTH + 0.02,
+  TERRACE_DOOR.head - 0.05,
+), { transparent: true });
+
 // Bedroom 1's street window, shared with the street front dressed round it.
 const BEDROOM_WINDOW = windowOf('Win11', 'room', 0.6);
+const STREET_FRONT = firstFront({ window: BEDROOM_WINDOW });
 
 export const FIRST = Object.freeze({
   id: 'first',
@@ -74,7 +89,8 @@ export const FIRST = Object.freeze({
   // south-east camera.
   caption: [7.25, -0.2],
   dimensionEdges: ['south', 'east'],
-  ...firstFront({ window: BEDROOM_WINDOW }),
+  ...STREET_FRONT,
+  facadeDressing: { ...STREET_FRONT.facadeDressing, east: [TERRACE_LEAF] },
 
   // Every window is one of the family's types (WINDOW_TYPES); the west windows sit on the axes of the
   // ones below them. Bedroom 2 takes its daylight from the west only.
@@ -87,7 +103,9 @@ export const FIRST = Object.freeze({
       windowOf('Win8', 'room', 0.5),
       windowOf('Win14', 'room', 4.7),
     ], { exterior: true }),
-    wall('east', 'z', 6.05, EXT, UPPER_INTERIOR.min, UPPER_INTERIOR.zMax, [windowOf('Win13', 'high', 1.8)], { exterior: true }),
+    wall('east', 'z', 6.05, EXT, UPPER_INTERIOR.min, UPPER_INTERIOR.zMax, [
+      door('D13', ...TERRACE_DOOR.z, TERRACE_DOOR.head, { leaf: false, frame: true }),
+    ], { exterior: true }),
     // P4 guards the stair void's west side; north of it the landing is open to the stair arrival.
     // P12 closes the void's south end; the 1.70 m beyond it, to the street wall, is bedroom 1's
     // dressing zone.

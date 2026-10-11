@@ -95,6 +95,24 @@ export function block(x, y, z, material) {
   return part(extent(x), extent(z), extent(y), midpoint(x), midpoint(z), y[0], { material });
 }
 
+/**
+ * A sliding glass leaf in a black frame, drawn where it lies when slid open: over `span` along
+ * `axis`, its plane at `at` on the other axis, `height` tall.
+ */
+export function slidingLeafParts(axis, span, at, height) {
+  const along = (length, thickness, h, centre, y0 = 0, options = {}) =>
+    axis === 'x' ? part(length, thickness, h, centre, at, y0, options) : part(thickness, length, h, at, centre, y0, options);
+  const [length, centre] = [extent(span), midpoint(span)];
+  const frame = { material: 'frame' };
+  return [
+    along(length, 0.02, height, centre),
+    along(0.05, 0.04, height, span[0] + 0.025, 0, frame),
+    along(0.05, 0.04, height, span[1] - 0.025, 0, frame),
+    along(length, 0.04, 0.05, centre, height - 0.05, frame),
+    along(length, 0.04, 0.05, centre, 0, frame),
+  ];
+}
+
 export function piece(id, name, material, parts, options = {}) {
   return {
     id,

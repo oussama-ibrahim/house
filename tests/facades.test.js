@@ -10,19 +10,23 @@ import { ROOF } from '../src/spec/presentation.js';
 
 describe('the street front', () => {
   const house = buildHouse({ cutaway: false, design: 'a' });
-  const streetFace = (spec) => spec.size[1];
+  // Whether a box stands beyond the outer face of the level's south or east wall.
+  const faceOf = (spec, wall) => ({
+    south: (box) => box.min[2] >= spec.size[1] - EPS,
+    east: (box) => box.min[0] >= spec.size[0] - EPS,
+  })[wall];
 
   it('dresses both levels', () => {
     for (const { model } of house.levels) expect(model.facadeDressing.length).toBeGreaterThan(0);
   });
 
-  it('hangs every piece on the street wall: in front of its face, or under the overhang\'s slab', () => {
+  it('hangs every piece outside its wall: beyond the level\'s face, or under the overhang\'s slab', () => {
     for (const { spec, model } of house.levels) {
       for (const { wall, boxes } of model.facadeDressing) {
-        expect(wall).toBe('south');
+        const face = faceOf(spec, wall);
         for (const box of boxes) {
-          const outside = box.min[2] >= streetFace(spec) - EPS || box.max[1] <= -SLAB_THICKNESS + EPS;
-          expect(outside, box.id).toBe(true);
+          const outside = face(box) || box.max[1] <= -SLAB_THICKNESS + EPS;
+          expect(outside, `${box.id} on ${wall}`).toBe(true);
         }
       }
     }
