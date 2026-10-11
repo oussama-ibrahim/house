@@ -143,6 +143,8 @@ export function createViewer(container, { language = DEFAULT_LANGUAGE } = {}) {
         // Interior text has no place on the house seen from outside.
         level.layers.labels.visible = state.labels && !assembled;
         level.layers.dimensions.visible = state.dimensions && !assembled;
+        // Neighbours stand where the house is built; beside an exploded level they would collide.
+        level.site.visible = assembled;
       }
       // The lifted roof belongs to the exploded view of the whole house, and the assembled house
       // always wears it; over a single exploded level it only hides rooms.
@@ -158,6 +160,7 @@ export function createViewer(container, { language = DEFAULT_LANGUAGE } = {}) {
       if (!level.group.visible) continue;
       const offset = level.group.position.toArray();
       points.push(...translated(level.fitPoints.built, offset));
+      if (level.site.visible) points.push(...translated(level.fitPoints.site, offset));
       if (level.layers.labels.visible || level.layers.dimensions.visible) points.push(...translated(level.fitPoints.annotations, offset));
     }
     if (design.roof.visible) points.push(...boxCorners(roofBounds(design.roof.position.toArray(), roofSize(design.id), design.roofFinish)));

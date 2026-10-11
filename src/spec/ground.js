@@ -14,6 +14,7 @@
 // kitchen's north-east corner.
 import { groundFront } from './facades.js';
 import { COLUMN, COLUMN_FRONT, EXTERIOR_WALL_THICKNESS, FOOTPRINT, INTERIOR, PARTITION_THICKNESS, SLAB_OPENING, WALL_HEIGHT } from './global.js';
+import { PARENTS_GARAGE } from './site.js';
 import { STAIR } from './stair.js';
 import {
   clearZone,
@@ -90,6 +91,7 @@ export const GROUND = Object.freeze({
   caption: [-1.4, 8.8],
   dimensionEdges: ['south'],
   ...groundFront({ window: STREET_WINDOW, door: FRONT_DOOR }),
+  neighbours: PARENTS_GARAGE,
 
   // North and south walls run the full footprint; west and east butt against them so no corner faces coincide.
   // Every window is one of the family's types (WINDOW_TYPES): the levels only choose where they start.

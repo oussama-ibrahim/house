@@ -90,6 +90,11 @@ export function part(w, d, h, cx, cz, y0 = 0, options = {}) {
   return { size: [w, d, h], centre: [cx, cz], y0, material: options.material ?? null };
 }
 
+/** A part given as its three ranges, x, y and z, instead of a size and centre. */
+export function block(x, y, z, material) {
+  return part(extent(x), extent(z), extent(y), midpoint(x), midpoint(z), y[0], { material });
+}
+
 export function piece(id, name, material, parts, options = {}) {
   return {
     id,

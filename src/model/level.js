@@ -22,6 +22,8 @@ export function buildLevel(spec, options = {}) {
     floors: floorPatches(spec),
     furniture: furnitureBoxes(spec.furniture),
     dressing: furnitureBoxes(spec.dressing ?? []),
+    // What stands beside the level on the site, shown with the assembled house only.
+    neighbours: furnitureBoxes(spec.neighbours ?? []),
     treads: spec.stair ? treadBoxes(spec.stair) : [],
     handrail: spec.stair ? handrailBox(spec.stair) : null,
     // Steelwork of the main flight: sloped stringers and guard rail, plus the guard's posts.

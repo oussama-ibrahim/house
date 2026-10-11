@@ -1,7 +1,7 @@
 import { BoxGeometry, EdgesGeometry, Group, LineSegments, Mesh } from 'three';
 import { CUTAWAY_WALL_HEIGHT, WALL_HEIGHT } from '../spec/global.js';
 import { annotationPoints } from '../model/annotations.js';
-import { centre, size } from '../model/box.js';
+import { centre, size, unionBounds } from '../model/box.js';
 import { boxCorners } from '../model/camera.js';
 import { buildLevel, levelBounds } from '../model/level.js';
 import { roofBoxes } from '../model/roof.js';
@@ -99,6 +99,8 @@ export function buildLevelScene(spec, materials, language) {
   group.add(groupOf('floors', full.floors, materials, { castShadow: false, outline: false }));
   group.add(furnitureGroup('furniture', full.furniture, materials));
   group.add(furnitureGroup('dressing', full.dressing, materials));
+  const site = furnitureGroup('site', full.neighbours, materials);
+  group.add(site);
 
   const exterior = {};
   const partitions = { full: new Group(), cut: new Group() };
@@ -141,10 +143,15 @@ export function buildLevelScene(spec, materials, language) {
     exterior,
     partitions,
     handrail,
+    site,
     layers: {},
     // Level-local points the camera must keep in frame: the built volume's corners, plus the
     // annotations when their layers are showing.
-    fitPoints: { built: boxCorners(levelBounds(full)), annotations: annotationPoints(spec) },
+    fitPoints: {
+      built: boxCorners(levelBounds(full)),
+      annotations: annotationPoints(spec),
+      site: full.neighbours.length ? boxCorners(unionBounds(full.neighbours.flatMap((entry) => entry.boxes))) : [],
+    },
   };
   rebuildLayers(levelScene, materials, language);
   return levelScene;

@@ -7,7 +7,7 @@
 // 7.20, the first level's at 8.20), y up from each level's floor; roof pieces take y from the roof
 // slab's underside. Windows and the door are the levels' own openings, so the front follows the plan.
 import { FOOTPRINT, SLAB_THICKNESS, UPPER_FOOTPRINT, WALL_HEIGHT } from './global.js';
-import { extent, midpoint, part, piece } from './helpers.js';
+import { block, extent, piece } from './helpers.js';
 import { ROOF } from './presentation.js';
 
 const WIDTH = FOOTPRINT.width;
@@ -19,6 +19,8 @@ const RENDER = 'beige';
 
 // The frame round the upper box and the marble pier closing it at the east end.
 const FRAME_OUT = 0.3;
+/** The overhang's front line on the street: the frame's face, 0.30 m proud of the first level. */
+export const FRONT_LINE = UPPER_FACE + FRAME_OUT;
 const SIDE_BAND = 0.2;
 const PIER_X = [5.55, WIDTH];
 const LED_LINE = 0.02;
@@ -28,18 +30,19 @@ const SKIN = 0.01;
 const SLATS_X = [2.85, 5.45];
 const DOOR_LED_X = Object.freeze([3.33, 3.5]);
 const OVERHANG_DOWNLIGHT_X = Object.freeze([0.9, 2.45, 4.0, 5.3]);
+// The overhang's downlights stand this far out from the ground level's street face.
+const OVERHANG_DOWNLIGHT_OUT = 0.5;
 const TOP_DOWNLIGHT_X = Object.freeze([1.0, 2.2, 3.6, 4.8]);
 const DOWNLIGHT = 0.08;
+// Marble planters: height, depth out from the face, and the planting's soil inside them.
+const PLANTER_Y = Object.freeze([0, 0.4]);
+const PLANTER = Object.freeze([0, 0.45]);
+const SOIL = Object.freeze([0.08, 0.37]);
 
 const span = (opening) => [opening.from, opening.to];
 const rise = (opening) => [opening.sill, opening.head];
 /** The range from `a` to `b` outward of a street face. */
 const out = (face, [a, b]) => [face + a, face + b];
-
-/** One box over three ranges, as a part of a piece. */
-function block(x, y, z, material) {
-  return part(extent(x), extent(z), extent(y), midpoint(x), midpoint(z), y[0], { material });
-}
 
 /** A full-height panel spanning `x` with a hole for `window`, standing off the face. */
 function windowPanel(name, x, window, face) {
@@ -77,8 +80,6 @@ function downlights(xs, y, face, distance) {
 
 /** The ground level's street front, round its street window and front door. */
 export function groundFront({ window, door }) {
-  const planter = [0, 0.45];
-  const soil = [0.08, 0.37];
   return {
     facade: RENDER,
     facadeDressing: {
@@ -88,15 +89,15 @@ export function groundFront({ window, door }) {
         piece('ledStrips', 'Two LED strips beside the door', 'light',
           DOOR_LED_X.map((x) => block([x, x + 0.03], [0, WALL_HEIGHT], out(GROUND_FACE, [0, SKIN])))),
         piece('planters', 'Marble planters', 'darkMarble', [
-          block([0.15, 1.9], [0, 0.4], out(GROUND_FACE, planter)),
-          block([5.6, 6.1], [0, 0.4], out(GROUND_FACE, planter)),
+          block([0.15, 1.9], PLANTER_Y, out(GROUND_FACE, PLANTER)),
+          block([5.6, 6.1], PLANTER_Y, out(GROUND_FACE, PLANTER)),
         ]),
         piece('plants', 'Planting', 'leaf', [
-          block([0.25, 1.8], [0.4, 0.85], out(GROUND_FACE, soil)),
-          block([5.7, 6.0], [0.4, 1.6], out(GROUND_FACE, soil)),
+          block([0.25, 1.8], [PLANTER_Y[1], 0.85], out(GROUND_FACE, SOIL)),
+          block([5.7, 6.0], [PLANTER_Y[1], 1.6], out(GROUND_FACE, SOIL)),
         ]),
         piece('step', 'Marble entrance step', 'darkMarble', [block([0, WIDTH], [-0.15, 0], [GROUND_FACE, UPPER_FACE - 0.2])]),
-        piece('soffitLights', 'Downlights under the overhang', 'light', downlights(OVERHANG_DOWNLIGHT_X, WALL_HEIGHT, GROUND_FACE, 0.5)),
+        piece('soffitLights', 'Downlights under the overhang', 'light', downlights(OVERHANG_DOWNLIGHT_X, WALL_HEIGHT, GROUND_FACE, OVERHANG_DOWNLIGHT_OUT)),
       ],
     },
   };
@@ -110,7 +111,7 @@ export function firstFront({ window }) {
     slabEdge: RENDER,
     facadeDressing: {
       south: [
-        piece('soffit', 'Soffit under the overhang', RENDER, [block([0, WIDTH], [-SLAB_THICKNESS - 2 * SKIN, -SLAB_THICKNESS], [GROUND_FACE, UPPER_FACE + FRAME_OUT])]),
+        piece('soffit', 'Soffit under the overhang', RENDER, [block([0, WIDTH], [-SLAB_THICKNESS - 2 * SKIN, -SLAB_THICKNESS], [GROUND_FACE, FRONT_LINE])]),
         piece('frame', 'Beige frame round the box', RENDER, [
           block([0, PIER_X[0]], [-SLAB_THICKNESS, 0], frame),
           block([0, SIDE_BAND], [0, WALL_HEIGHT], frame),
@@ -123,6 +124,28 @@ export function firstFront({ window }) {
       ],
     },
   };
+}
+
+/**
+ * The parents' garage's street face, across `x`, in the front's language: a lighter panel round its
+ * open `bay` (the lintel and the far jamb), downlights under its canopy in line with the overhang's,
+ * and a marble planter at its far end, mirroring the house's.
+ */
+export function garageFront({ x, bay }) {
+  const panel = out(GROUND_FACE, [0, PANEL_OUT]);
+  const planter = out(GROUND_FACE, PLANTER.map((v) => v + PANEL_OUT));
+  const soil = out(GROUND_FACE, SOIL.map((v) => v + PANEL_OUT));
+  const planterX = [x[1] - 0.5, x[1]];
+  return [
+    piece('garageBayPanel', 'Lighter panel round the garage bay', 'lightBeige', [
+      block(span(bay), [bay.head, WALL_HEIGHT], panel),
+      block([bay.to, x[1]], [0, WALL_HEIGHT], panel),
+    ]),
+    piece('garageLights', 'Downlights under the garage canopy', 'light',
+      downlights([x[0] + 0.75, x[1] - 0.75], WALL_HEIGHT, GROUND_FACE, OVERHANG_DOWNLIGHT_OUT)),
+    piece('garagePlanter', 'Marble planter at the garage end', 'darkMarble', [block(planterX, PLANTER_Y, planter)]),
+    piece('garagePlants', 'Planting at the garage end', 'leaf', [block([planterX[0] + 0.1, planterX[1] - 0.1], [PLANTER_Y[1], 1.4], soil)]),
+  ];
 }
 
 /** The roof's part of the front: the frame's top band with its wood soffit, and the pier, carried up. */
