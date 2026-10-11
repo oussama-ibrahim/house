@@ -5,7 +5,7 @@ import { centre, size } from '../model/box.js';
 import { boxCorners } from '../model/camera.js';
 import { buildLevel, glazingBoxes, levelBounds, wallSolids } from '../model/level.js';
 import { roofBoxes } from '../model/roof.js';
-import { outwardNormal } from '../model/walls.js';
+import { BOX_FACES, outwardNormal } from '../model/walls.js';
 import { buildDimensionLayer, buildLabelLayer, disposeLayer } from './labels.js';
 
 // Every element is the same unit cube, scaled and positioned; its outline is the unit cube's
@@ -21,10 +21,20 @@ function decorate(mesh, materials, { castShadow, outline, name }) {
   return mesh;
 }
 
+function materialOf(materials, key, box) {
+  const material = materials[key];
+  if (!material) throw new Error(`No material "${key}" for ${box.id}`);
+  return material;
+}
+
+/** One material, or one per face when the box carries a facade finish on some faces. */
+function surfaceOf(box, materials) {
+  if (!box.faces) return materialOf(materials, box.material, box);
+  return BOX_FACES.map((face) => materialOf(materials, box.faces[face] ?? box.material, box));
+}
+
 function meshForBox(box, materials, { castShadow = true, outline = true } = {}) {
-  const material = materials[box.material];
-  if (!material) throw new Error(`No material "${box.material}" for ${box.id}`);
-  const mesh = new Mesh(UNIT_BOX, material);
+  const mesh = new Mesh(UNIT_BOX, surfaceOf(box, materials));
   mesh.scale.set(...size(box));
   mesh.position.set(...centre(box));
   return decorate(mesh, materials, { castShadow, outline, name: box.id });

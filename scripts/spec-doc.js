@@ -42,13 +42,24 @@ function wallLabel(wall) {
 }
 
 function wallsSection(spec) {
-  const partitions = spec.walls.filter((wall) => !wall.exterior);
+  const partitions = spec.walls.filter((wall) => !wall.exterior && !wall.column);
+  const columns = spec.walls.filter((wall) => wall.column);
   const along = (wall) => `${wall.axis} ${range([wall.from, wall.to])}`;
-  return [
-    `### Partitions (thickness ${m(PARTITION_THICKNESS)}, height ${m(WALL_HEIGHT)}, clipped to the interior envelope)`,
+  const thickness = (wall) => (Math.abs(wall.thickness - PARTITION_THICKNESS) < 1e-9 ? '' : `, ${m(wall.thickness)} thick`);
+  const lines = [
+    `### Partitions (thickness ${m(PARTITION_THICKNESS)} unless noted, height ${m(WALL_HEIGHT)}, clipped to the interior envelope)`,
     '',
-    table(['Ref', 'Centreline', 'Extent'], partitions.map((wall) => [wall.id, `${wall.axis === 'x' ? 'z' : 'x'} = ${m(wall.at)}`, along(wall)])),
-  ].join('\n');
+    table(['Ref', 'Centreline', 'Extent'], partitions.map((wall) => [wall.id, `${wall.axis === 'x' ? 'z' : 'x'} = ${m(wall.at)}`, `${along(wall)}${thickness(wall)}`])),
+  ];
+  if (columns.length) {
+    lines.push('', '### Columns (structural, floor to slab, same position on both levels)', '');
+    lines.push(table(['Ref', 'Extent', 'Section'], columns.map((wall) => [
+      wall.id,
+      `x ${range([wall.from, wall.to])}, z ${range([wall.at - wall.thickness / 2, wall.at + wall.thickness / 2])}`,
+      `${m(wall.to - wall.from)} × ${m(wall.thickness)}`,
+    ])));
+  }
+  return lines.join('\n');
 }
 
 function openingsSection(spec) {
@@ -203,7 +214,7 @@ function checksSection() {
     '',
     `1. Gross area per level = footprint width × depth (${LEVEL_SPECS.map((spec) => `${spec.name.toLowerCase()} ${grossAreaOf(spec).toFixed(2)} m²`).join(', ')}). Net areas match the room tables within ${CHECKS.netAreaTolerance} m².`,
     `2. For every step, if any slab box overlaps its x–z extent, its top must leave ${m(CHECKS.minHeadroom)} m under the ${m(WALL_HEIGHT)} m slab underside. The starter leg sits under bedroom 1's floor; the landing and the main flight are under the void.`,
-    '3. The first-level void covers the ground-level stair room exactly, running on only over the overhang as a light well; the landing and main flight lie within it, the starter leg lies outside it under a slab, and the arrival sits over a single ground-level room (allowing for the partition along its edge).',
+    '3. The first-level void covers the ground-level stair room exactly, running on only over the overhang; the landing and main flight lie within it, the starter leg lies outside it under a slab, and the arrival sits over a single ground-level room (allowing for the partition along its edge).',
     `4. The main flight strip is ${m(STAIR.x[1] - STAIR.x[0])} m clear, a wall face or the guard on each flank, and no step box extends outside its leg.`,
     `5. No furniture bounding box intersects any wall box. A furniture box may touch a wall face only where its \`Touches\` column says so; elsewhere the minimum gap is ${m(CHECKS.minWallGap)} m.`,
     '6. No furniture bounding box intersects any clear zone.',
@@ -256,13 +267,15 @@ const parts = [
   '',
   '### Window family',
   '',
-  'Every window is one of these types; a level chooses only where each starts along its wall. Heads share one line, a 0.20 m lintel under the slab.',
+  'Every window is one of these types; a level chooses only where each starts along its wall. Heads share one line, a 0.20 m lintel under the slab, except the stair slot, which runs to the wall top on both levels so its two panes read as one vertical strip.',
   '',
   table(['Type', 'Width', 'Sill', 'Head', 'Used for'], [
     ['room', m(WINDOW_TYPES.room.width), m(WINDOW_TYPES.room.sill), m(WINDOW_TYPES.room.head), 'living room and bedrooms, sofa and bed height beneath'],
     ['high', m(WINDOW_TYPES.high.width), m(WINDOW_TYPES.high.sill), m(WINDOW_TYPES.high.head), 'WC, shower room, landing'],
     ['kitchen', m(WINDOW_TYPES.kitchen.width), m(WINDOW_TYPES.kitchen.sill), m(WINDOW_TYPES.kitchen.head), 'over the worktop'],
-    ['stair', m(WINDOW_TYPES.stair.width), m(WINDOW_TYPES.stair.sill), m(WINDOW_TYPES.stair.head), 'the pair on the front wall, one per level; the lower one fixed laminated glass over the landing'],
+    ['picture', m(WINDOW_TYPES.picture.width), m(WINDOW_TYPES.picture.sill), m(WINDOW_TYPES.picture.head), `bedroom 1's street front; transom at ${m(WINDOW_TYPES.picture.transom)}, fixed laminated glass below it as the guard`],
+    ['slotLower', m(WINDOW_TYPES.slotLower.width), m(WINDOW_TYPES.slotLower.sill), m(WINDOW_TYPES.slotLower.head), 'lower half of the stair slot, fixed laminated glass over the landing'],
+    ['slotUpper', m(WINDOW_TYPES.slotUpper.width), m(WINDOW_TYPES.slotUpper.sill), m(WINDOW_TYPES.slotUpper.head), 'upper half of the stair slot, fixed, rising from the void'],
   ]),
   '',
   `**Y convention.** Per level, y = 0 is the finished floor surface. The slab occupies y −${m(SLAB_THICKNESS)} to 0.00. Walls run y 0.00 to ${m(WALL_HEIGHT)}. Both levels are modelled at the same y, side by side.`,
@@ -275,7 +288,8 @@ const parts = [
   '## Part 6 — Materials',
   '',
   table(['Element', 'Hex'], [
-    ['Walls', `\`${COLOURS.wall}\``],
+    ['Walls; exterior faces of the ground level', `\`${COLOURS.wall}\``],
+    ['Facade cladding, outer faces of the first level', `\`${COLOURS.cladding}\``],
     ['Slab, structure, stair, worktops', `\`${COLOURS.structure}\``],
     ['Wood floor (bedrooms)', `\`${COLOURS.wood}\``],
     ['Tiled floor (wet rooms, stair)', `\`${COLOURS.tile}\``],

@@ -124,6 +124,32 @@ export function wallFace(wall, side) {
   return side === 'min' ? min : max;
 }
 
+// BoxGeometry's face order, so the scene can map a box's per-face finishes onto a material array.
+export const BOX_FACES = Object.freeze(['px', 'nx', 'py', 'ny', 'pz', 'nz']);
+
+/** The vertical faces of a box that lie on the outer face of a `[width, depth]` footprint. */
+export function envelopeFaces(box, [width, depth]) {
+  const on = (value, plane) => Math.abs(value - plane) <= EPS;
+  return [
+    on(box.max[0], width) && 'px',
+    on(box.min[0], 0) && 'nx',
+    on(box.max[2], depth) && 'pz',
+    on(box.min[2], 0) && 'nz',
+  ].filter(Boolean);
+}
+
+/**
+ * Gives every exterior wall solid the facade finish on the faces it shows the street and the
+ * neighbours, corner ends included; reveals, tops and interior faces keep the wall material.
+ */
+export function cladSolids(solids, wall, size, finish) {
+  if (!finish || !wall.exterior) return solids;
+  return solids.map((solid) => {
+    const faces = envelopeFaces(solid, size);
+    return faces.length ? { ...solid, faces: Object.fromEntries(faces.map((face) => [face, finish])) } : solid;
+  });
+}
+
 /** Unit vector pointing out of the building through an exterior wall. */
 export function outwardNormal(wall) {
   if (!wall.exterior) throw new SpecError(`${wall.id} is a partition and has no outward side`);

@@ -4,7 +4,8 @@ import { door, wall, windowOpening } from '../src/spec/helpers.js';
 import { GROUND } from '../src/spec/ground.js';
 import { SpecError } from '../src/model/errors.js';
 import { size } from '../src/model/box.js';
-import { splitWall, validateWall } from '../src/model/walls.js';
+import { cladSolids, envelopeFaces, splitWall, validateWall } from '../src/model/walls.js';
+import { box } from '../src/model/box.js';
 
 const wallById = (id) => GROUND.walls.find((w) => w.id === id);
 const byRole = (solids, role) => solids.filter((s) => s.role === role);
@@ -46,24 +47,21 @@ describe('splitWall', () => {
     expect([glazing[1].min[1], glazing[1].max[1]]).toEqual([0.9, 2.4]);
   });
 
-  it('leaves the blind east wall solid and glazes the kitchen wall from floor to ceiling', () => {
+  it('leaves the blind east wall solid and the kitchen, hall and WC walls unglazed', () => {
     const east = splitWall(wallById('east'), WALL_HEIGHT);
     expect(east.solids).toHaveLength(1);
     expect(east.glazing).toHaveLength(0);
     expect(east.frames).toHaveLength(0);
 
-    const p1 = splitWall(wallById('P1'), WALL_HEIGHT);
-    for (const panel of ['G1', 'G3']) {
-      const glass = p1.glazing.find((g) => g.opening === panel);
-      expect([glass.min[1], glass.max[1]]).toEqual([0, WALL_HEIGHT]);
-      expect(p1.solids.some((s) => s.id.startsWith(`P1:${panel}:`))).toBe(false);
+    // The walls around the hall are solid apart from the WC door: no glazing anywhere.
+    for (const id of ['P1', 'P8']) {
+      const split = splitWall(wallById(id), WALL_HEIGHT);
+      expect(split.glazing, id).toHaveLength(0);
+      expect(split.frames, id).toHaveLength(0);
     }
-    // The open panel leaves neither sill nor lintel: a clear full-height opening in a frame.
-    expect(p1.solids.some((s) => s.id.startsWith('P1:D3:'))).toBe(false);
-    expect(p1.glazing.some((g) => g.opening === 'D3')).toBe(false);
   });
 
-  it('frames every window with jambs, rails and mullions, and a transom where asked', () => {
+  it('frames every window with jambs, rails and mullions', () => {
     const north = splitWall(wallById('north'), WALL_HEIGHT);
     // The 2.10 m kitchen window is three panes: two mullions.
     const win2 = north.frames.filter((f) => f.opening === 'Win2').map((f) => f.id.split(':')[2]);
@@ -72,13 +70,8 @@ describe('splitWall', () => {
     expect([win2Jamb.min[1], win2Jamb.max[1]]).toEqual([1.1, 2.4]);
     expect(win2Jamb.max[2] - win2Jamb.min[2]).toBeCloseTo(0.06, 6);
 
-    // Each sliding panel is one pane in its own frame: no mullion, no transom.
+    // A door with a leaf gets no frame.
     const p1 = splitWall(wallById('P1'), WALL_HEIGHT);
-    const g1 = p1.frames.filter((f) => f.opening === 'G1').map((f) => f.id.split(':')[2]);
-    expect(g1.sort()).toEqual(['headRail', 'jambA', 'jambB', 'sillRail'].sort());
-    const d3 = p1.frames.filter((f) => f.opening === 'D3').map((f) => f.id.split(':')[2]);
-    expect(d3.sort()).toEqual(['headRail', 'jambA', 'jambB'].sort());
-    expect(p1.frames.find((f) => f.id === 'P1:D3:headRail').max[1]).toBe(WALL_HEIGHT);
     expect(p1.frames.some((f) => f.opening === 'D2')).toBe(false);
   });
 
@@ -105,5 +98,29 @@ describe('splitWall', () => {
     expect(() => validateWall(outside)).toThrow(/outside wall/);
     const flipped = wall('t', 'x', 1, 0.1, 0, 6, [windowOpening('w', 1, 2, 2.2, 0.9)]);
     expect(() => validateWall(flipped)).toThrow(/sill\/head/);
+  });
+});
+
+describe('facade cladding', () => {
+  const footprint = [6.15, 8.2];
+
+  it('finds the faces of a box that lie on the footprint, corners included', () => {
+    expect(envelopeFaces(box('corner', [0, 0, 8.0], [0.5, 2.6, 8.2], 'wall'), footprint)).toEqual(['nx', 'pz']);
+    expect(envelopeFaces(box('inside', [1, 0, 1], [2, 2.6, 2], 'wall'), footprint)).toEqual([]);
+  });
+
+  it('clads only the outer faces of exterior walls and leaves partitions and unfinished levels alone', () => {
+    const south = wall('south', 'x', 8.1, 0.2, 0, 6.15, [windowOpening('W', 1, 2, 0.9, 2.4)], { exterior: true });
+    const { solids } = splitWall(south, WALL_HEIGHT);
+    const clad = cladSolids(solids, south, footprint, 'cladding');
+    for (const solid of clad) {
+      expect(solid.faces.pz).toBe('cladding');
+      expect(solid.faces.nz).toBeUndefined();
+    }
+    expect(clad.find((s) => s.min[0] === 0).faces.nx).toBe('cladding');
+
+    const partition = wall('P', 'x', 4, 0.1, 0.2, 5.95);
+    expect(cladSolids(splitWall(partition, WALL_HEIGHT).solids, partition, footprint, 'cladding')[0].faces).toBeUndefined();
+    expect(cladSolids(solids, south, footprint, undefined)).toBe(solids);
   });
 });

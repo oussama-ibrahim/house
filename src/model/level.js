@@ -3,7 +3,7 @@ import { unionBounds } from './box.js';
 import { floorPatches, slabBoxes } from './floors.js';
 import { furnitureBoxes } from './furniture.js';
 import { guardParts, handrailBox, handrailCentrelineY, landingParts, stringerBoxes, treadBoxes } from './stair.js';
-import { splitWall, wallEnvelope } from './walls.js';
+import { cladSolids, splitWall, wallEnvelope } from './walls.js';
 
 /**
  * Pure geometry for one level at a given wall height. Everything the scene draws and everything
@@ -14,7 +14,10 @@ export function buildLevel(spec, options = {}) {
   return {
     spec,
     wallHeight,
-    walls: spec.walls.map((wall) => ({ wall, envelope: wallEnvelope(wall, wallHeight), ...splitWall(wall, wallHeight) })),
+    walls: spec.walls.map((wall) => {
+      const split = splitWall(wall, wallHeight);
+      return { wall, envelope: wallEnvelope(wall, wallHeight), ...split, solids: cladSolids(split.solids, wall, spec.size, spec.facade) };
+    }),
     slabs: slabBoxes(spec),
     floors: floorPatches(spec),
     furniture: furnitureBoxes(spec.furniture),

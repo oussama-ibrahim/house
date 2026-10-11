@@ -18,19 +18,29 @@ export const FLOOR_TO_FLOOR = 2.88;
 export const INTERIOR = Object.freeze({ min: 0.2, xMax: 5.95, zMax: 7.0 });
 export const UPPER_INTERIOR = Object.freeze({ min: 0.2, xMax: 5.95, zMax: 8.0 });
 
-// The window family. Every window is one of four types with a shared 2.40 head (a 0.20 m lintel
-// under the slab); the sill sits just above what stands beneath the type. Widths and positions are
-// the only things a level chooses.
+// The one interior column, 0.25 × 0.25, foundation to roof, a site fact the user gave as 2.95 m
+// from the party wall's outer face and 4.20 m from the street front's outer face, both to its near
+// edge. Both levels share the north-west origin, so it has the same x–z on each.
+export const COLUMN = Object.freeze({ id: 'C1', x: Object.freeze([2.95, 3.2]), z: Object.freeze([2.75, 3.0]) });
+
+// The window family. Every window is one of these types; the sill sits just above what stands
+// beneath the type, and all but the stair slot share a 2.40 head (a 0.20 m lintel under the slab).
+// Positions are the only thing a level chooses.
 export const WINDOW_TYPES = Object.freeze({
-  // Habitable rooms: sofa and bed height beneath.
-  room: Object.freeze({ width: 1.2, sill: 0.9, head: 2.4 }),
+  // Habitable rooms: sofa and bed height beneath. 1.80 wide, the user's call for more light.
+  room: Object.freeze({ width: 1.8, sill: 0.9, head: 2.4 }),
   // Wet rooms and the landing: privacy and fittings beneath.
   high: Object.freeze({ width: 0.8, sill: 1.2, head: 2.4 }),
   // Over the kitchen worktop.
   kitchen: Object.freeze({ width: 2.1, sill: 1.1, head: 2.4 }),
-  // The stair pair, one above the other on the front wall; the lower one is fixed laminated glass
-  // because it stands over the landing.
-  stair: Object.freeze({ width: 1.05, sill: 1.1, head: 2.4 }),
+  // Bedroom 1's street front, floor to head: the pane below the transom is fixed laminated glass and
+  // is the guard, so no railing is needed over the street.
+  picture: Object.freeze({ width: 3.0, sill: 0, head: 2.4, transom: 0.9 }),
+  // The stair slot, one narrow fixed pane per level, wall top to wall top so the two read as one
+  // vertical strip broken only by the slab edge. The lower one stands over the landing (top 0.72),
+  // so it is fixed laminated glass; the upper one rises from the void.
+  slotLower: Object.freeze({ width: 0.45, sill: 0.9, head: 2.6 }),
+  slotUpper: Object.freeze({ width: 0.45, sill: 0, head: 2.6 }),
 });
 
 // Visual only: the finish patch stands 10 mm proud of y = 0 so it never z-fights the slab top.
@@ -90,6 +100,9 @@ export const COLOURS = Object.freeze({
   appliance: '#262626',
   glazing: '#9FC3D8',
   frame: '#1E1E1E',
+  // Wood-look cladding on the first level's outer faces, a shade deeper than the oak joinery so the
+  // overhanging box reads as one deliberate volume over the white ground floor.
+  cladding: '#A47A52',
 });
 export const GLAZING_OPACITY = 0.35;
 

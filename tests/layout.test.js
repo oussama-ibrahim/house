@@ -28,7 +28,7 @@ describe('layouts', () => {
     expect(firstSpec.size).toEqual([FOOTPRINT.width, UPPER_FOOTPRINT.depth]);
     const south = (spec) => spec.walls.find((w) => w.id === 'south').at;
     expect(south(firstSpec) - south(groundSpec)).toBeCloseTo(1, 9);
-    // The void keeps the stair room's strip and runs on over the overhang as a light well.
+    // The void keeps the stair room's strip and runs on over the overhang.
     expect(firstSpec.rooms.find((r) => r.id === 'void')).toMatchObject({ x: groundSpec.rooms.find((r) => r.id === 'stair').x, z: [2.95, 8] });
   });
 
@@ -46,10 +46,10 @@ describe('room size tags', () => {
     const tags = roomDimensions(ground.spec);
     expect(tags.map((tag) => tag.id)).toEqual(['wc', 'kitchen', 'living', 'stair']);
     const kitchen = tags.find((tag) => tag.id === 'kitchen');
-    expect(kitchen.size.map((v) => Number(v.toFixed(2)))).toEqual([4.1, 2.05]);
-    expect(kitchen.area).toBeCloseTo(9.155, 9);
-    expect(tags.find((tag) => tag.id === 'wc').size.map((v) => Number(v.toFixed(2)))).toEqual([1.55, 2.05]);
-    expect(tags.find((tag) => tag.id === 'living').area).toBeCloseTo(20.735, 9);
+    expect(kitchen.size.map((v) => Number(v.toFixed(2)))).toEqual([2.75, 2.65]);
+    expect(kitchen.area).toBeCloseTo(7.3625, 9);
+    expect(tags.find((tag) => tag.id === 'wc').size.map((v) => Number(v.toFixed(2)))).toEqual([2.75, 1.65]);
+    expect(tags.find((tag) => tag.id === 'living').area).toBeCloseTo(20.7575, 9);
   });
 
   it('gives every room its size and area, the stair void included', () => {

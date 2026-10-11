@@ -2,12 +2,14 @@
 import { describe, expect, it } from 'vitest';
 import { CAMERA, CHECKS, CUTAWAY_WALL_HEIGHT, WALL_HEIGHT, WINDOW_TYPES, WORLD_PLACEMENT } from '../src/spec/global.js';
 import { ROOF } from '../src/spec/presentation.js';
+import { STAIR } from '../src/spec/stair.js';
 import { dimensionLines, levelCaption, roomLabels } from '../src/model/annotations.js';
 import { intersects } from '../src/model/box.js';
 import { orbitPosition } from '../src/model/camera.js';
 import { buildHouse } from '../src/model/house.js';
 import { furnitureBoxList } from '../src/model/level.js';
 import { roofBoxes, roofHeights } from '../src/model/roof.js';
+import { starterFootX } from '../src/model/stair.js';
 import { nearExteriorWalls } from '../src/model/section.js';
 import { openingPrism } from '../src/model/walls.js';
 
@@ -49,7 +51,7 @@ describe('roof', () => {
 });
 
 describe('windows', () => {
-  it('draws every window from the family, with the stair pair stacked on the front wall', () => {
+  it('draws every window from the family', () => {
     for (const { spec } of house.levels) {
       for (const wall of spec.walls) {
         for (const opening of wall.openings.filter((o) => o.kind === 'window' && !o.open && o.head < WALL_HEIGHT)) {
@@ -60,10 +62,51 @@ describe('windows', () => {
         }
       }
     }
+  });
+
+  it.each([
+    ['west', 'Win3', 'Win8'],
+    ['west', 'Win4', 'Win14'],
+    ['south', 'Win6', 'Win15'],
+  ])('stacks the %s windows %s and %s on one axis', (wallId, lowerId, upperId) => {
+    const [ground, first] = house.levels.map((level) => level.spec);
+    const opening = (spec, id) => spec.walls.find((w) => w.id === wallId).openings.find((o) => o.id === id);
+    const axis = (o) => (o.from + o.to) / 2;
+    expect(axis(opening(ground, lowerId))).toBeCloseTo(axis(opening(first, upperId)), 9);
+  });
+
+  it('opens the front door at the stair foot, under the overhang', () => {
+    const [ground, first] = house.levels.map((level) => level.spec);
+    const doorway = ground.walls.find((w) => w.id === 'south').openings.find((o) => o.id === 'D1');
+    const stairFoot = ground.clearZones.find((zone) => zone.opening === 'stairFoot');
+    expect(doorway.from).toBeGreaterThanOrEqual(stairFoot.x[0]);
+    expect(doorway.to).toBeLessThanOrEqual(starterFootX(STAIR));
+    expect(first.size[1]).toBeGreaterThan(ground.size[1]);
+  });
+
+  it('keeps every front window clear of the starter leg, so no step climbs beside a low sill', () => {
+    const [ground] = house.levels.map((level) => level.spec);
+    const leg = [starterFootX(STAIR), STAIR.x[0]];
+    for (const opening of ground.walls.find((w) => w.id === 'south').openings) {
+      const overlap = Math.min(opening.to, leg[1]) - Math.max(opening.from, leg[0]);
+      expect(overlap, opening.id).toBeLessThanOrEqual(0);
+    }
+  });
+
+  it('runs the stair slot from wall top to wall top so its two panes read as one strip', () => {
     const [ground, first] = house.levels.map((level) => level.spec);
     const lower = ground.walls.find((w) => w.id === 'south').openings.find((o) => o.id === 'Win6');
     const upper = first.walls.find((w) => w.id === 'south').openings.find((o) => o.id === 'Win15');
-    expect([lower.from, lower.to, lower.type]).toEqual([upper.from, upper.to, upper.type]);
+    expect([lower.head, upper.head, upper.sill]).toEqual([WALL_HEIGHT, WALL_HEIGHT, 0]);
+    expect([lower.from, lower.to]).toEqual([upper.from, upper.to]);
+  });
+
+  it('guards the floor-to-head picture window with a transom over fixed glass', () => {
+    const [, first] = house.levels.map((level) => level.spec);
+    const picture = first.walls.find((w) => w.id === 'south').openings.find((o) => o.id === 'Win11');
+    expect([picture.sill, picture.transom]).toEqual([0, WINDOW_TYPES.picture.transom]);
+    const frames = house.levels[1].model.walls.find((entry) => entry.wall.id === 'south').frames;
+    expect(frames.some((f) => f.id === 'south:Win11:transom')).toBe(true);
   });
 });
 
@@ -103,7 +146,7 @@ describe('annotations', () => {
   it('captions each level with gross and net area and measures the outer edges', () => {
     const [ground, first] = house.levels.map((level) => level.spec);
     expect(levelCaption(ground).gross).toBeCloseTo(44.28, 9);
-    expect(levelCaption(ground).net).toBe(38.1);
+    expect(levelCaption(ground).net).toBe(37.7);
     expect(levelCaption(ground).position[0]).toBeLessThan(0);
     expect(levelCaption(first).position[0]).toBeGreaterThan(6.15);
 

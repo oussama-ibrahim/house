@@ -19,6 +19,14 @@ export function wall(id, axis, at, thickness, from, to, openings = [], options =
   return { id, axis, at, thickness, from, to, openings, exterior: Boolean(options.exterior) };
 }
 
+/**
+ * A structural column, modelled as a short wall so the splitter, the cut heights and every wall
+ * check treat it exactly like one; `column: true` keeps it out of the partition tables.
+ */
+export function column({ id, x, z }) {
+  return { ...wall(id, 'x', (z[0] + z[1]) / 2, z[1] - z[0], x[0], x[1]), column: true };
+}
+
 /** `frame: true` gives a leafless opening a black frame, as in a glazed screen with a sliding leaf. */
 export function door(id, from, to, head, options = {}) {
   return { id, kind: 'door', from, to, sill: 0, head, leaf: options.leaf !== false, frame: Boolean(options.frame) };
@@ -36,7 +44,7 @@ export function windowOpening(id, from, to, sill, head, options = {}) {
 export function windowOf(id, type, from) {
   const size = WINDOW_TYPES[type];
   if (!size) throw new Error(`No window type "${type}"`);
-  return { ...windowOpening(id, from, from + size.width, size.sill, size.head), type };
+  return { ...windowOpening(id, from, from + size.width, size.sill, size.head, { transom: size.transom }), type };
 }
 
 /**

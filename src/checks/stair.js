@@ -49,7 +49,7 @@ function roomCovers(room, rect) {
 
 /** The ground room the landing sits over, allowing for the partition along that room's edge. */
 function roomUnderLanding(ground, landing) {
-  return ground.spec.rooms.find((room) => roomCovers(room, landing) && rectsOverlapInPlan(room, landing));
+  return ground.spec.rooms.find((room) => roomCovers(room, landing) && roomRects(room).some((rect) => rectsOverlapInPlan(rect, landing)));
 }
 
 /** The strip the top riser lands on: the stair's width, one arrival depth north of the flight's top. */
@@ -87,11 +87,15 @@ export function checkStairAlignment(house) {
   ]);
 }
 
-/** Walls whose envelope touches the stair strip along one flank, over the flight's length. */
+/**
+ * Walls whose envelope touches the stair strip along one flank, over the flight's length. Only walls
+ * running with the flight (along z) can flank it; a cross wall merely ending at the strip cannot.
+ */
 function flankWalls(ground, stair, side) {
   const flightZ = [stair.bottomZ - stair.going * stair.treadCount, stair.bottomZ];
   const strip = { min: [stair.x[0], 0, flightZ[0]], max: [stair.x[1], 0, flightZ[1]] };
   return ground.model.walls
+    .filter(({ wall }) => wall.axis === 'z')
     .filter(({ envelope }) => overlap(envelope, strip, 2) > EPS)
     .filter(({ envelope }) => (side === 'west' ? Math.abs(envelope.max[0] - stair.x[0]) : Math.abs(envelope.min[0] - stair.x[1])) < EPS)
     .map(({ wall }) => wall.id);

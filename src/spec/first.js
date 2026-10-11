@@ -1,12 +1,13 @@
 // Part 5 — first level, v3. Two bedrooms and a shower room off a landing. The stair arrives at the
-// north-east onto the landing; the shower room sits north of it, directly over the ground-floor
-// bathroom, so every wet room shares one plumbing stack. The landing's leg runs south along the
+// north-east onto the landing; the shower room sits north of it, over the ground-floor kitchen, and
+// drains to a boxed stack in the kitchen's empty north-east corner, so no pipe crosses the kitchen
+// ceiling; the ground WC has its own stack on the west. The landing's leg runs south along the
 // party wall to bedroom 1's door; bedroom 2 opens off its west side. The level projects 1 m over
-// the street; the stair void runs on to the front wall as a light well, with a tall window there so
-// daylight from the street falls down the flight.
-import { EXTERIOR_WALL_THICKNESS, PARTITION_THICKNESS, UPPER_FOOTPRINT, UPPER_INTERIOR } from './global.js';
+// the street; the stair void runs on to the front wall over the overhang, lit by the stair slot.
+import { COLUMN, EXTERIOR_WALL_THICKNESS, PARTITION_THICKNESS, UPPER_FOOTPRINT, UPPER_INTERIOR } from './global.js';
 import {
   clearZone,
+  column,
   clearance,
   door,
   label,
@@ -31,42 +32,53 @@ export const FIRST = Object.freeze({
   // south-east camera.
   caption: [7.25, -0.2],
   dimensionEdges: ['south', 'east'],
+  // Outer finish of the exterior walls: the overhanging box is clad, the ground level stays white.
+  facade: 'cladding',
 
-  // Every window is one of the family's types (WINDOW_TYPES); the stair window sits exactly over
-  // the ground level's, the same width.
+  // Every window is one of the family's types (WINDOW_TYPES) and sits on the axis of the window
+  // below it. Bedroom 2 takes its daylight from the west only.
   walls: [
-    wall('north', 'x', 0.1, EXT, 0, WIDTH, [
-      windowOf('Win7', 'room', 0.4),
-      windowOf('Win9', 'high', 4.2),
-    ], { exterior: true }),
-    // Bedroom 1's street window, over the living room's, and the upper stair window over the void.
+    wall('north', 'x', 0.1, EXT, 0, WIDTH, [windowOf('Win9', 'high', 4.2)], { exterior: true }),
+    // Bedroom 1's picture window on the living room's axis, and the upper half of the stair slot
+    // over the void.
     wall('south', 'x', 8.1, EXT, 0, WIDTH, [
-      windowOf('Win11', 'room', 2.3),
-      windowOf('Win15', 'stair', 4.8),
+      windowOf('Win11', 'picture', 1.45),
+      windowOf('Win15', 'slotUpper', 5.1),
     ], { exterior: true }),
     wall('west', 'z', 0.1, EXT, UPPER_INTERIOR.min, UPPER_INTERIOR.zMax, [
-      windowOf('Win8', 'room', 0.8),
-      windowOf('Win14', 'room', 5.0),
+      windowOf('Win8', 'room', 0.5),
+      windowOf('Win14', 'room', 4.7),
     ], { exterior: true }),
     wall('east', 'z', 6.05, EXT, UPPER_INTERIOR.min, UPPER_INTERIOR.zMax, [windowOf('Win13', 'high', 1.8)], { exterior: true }),
     // P4 guards the stair void's west side all the way to the front wall; north of it the landing is
     // open to the stair arrival.
     wall('P4', 'z', 4.65, PART, 2.95, 8.0),
-    wall('P5', 'z', 3.6, PART, 0.2, 4.05, [door('D6', 2.75, 3.55, 2.05)]),
+    // Bedroom 2's door sits just south of the column, its north jamb on the column's south face.
+    wall('P5', 'z', 3.6, PART, 0.2, 4.05, [door('D6', 3.0, 3.8, 2.05)]),
     wall('P7', 'x', 4.1, PART, 0.2, 4.6, [door('D7', 3.75, 4.55, 2.05)]),
     // P9 closes the shower room off the landing.
     wall('P9', 'x', 1.65, PART, 3.65, 5.95, [door('D11', 4.65, 5.35, 2.05)]),
+    // The column stands in bedroom 2 with its west face on the wardrobe front line; N1 fills the
+    // 0.35 m between it and P5 so no pocket is left beside the door.
+    column(COLUMN),
+    wall('N1', 'x', (COLUMN.z[0] + COLUMN.z[1]) / 2, COLUMN.z[1] - COLUMN.z[0], COLUMN.x[1], 3.55),
   ],
 
   rooms: [
     room('landing', 'Landing', [3.65, 5.95], [1.7, 2.95], 'marble', 3.9, { extra: [{ x: [3.65, 4.6], z: [2.95, 4.05] }] }),
     room('shower', 'Shower room', [3.65, 5.95], [0.2, 1.6], 'tile', 3.2),
-    // The void runs past the stair room to the front wall: the last metre is a light well over the flight.
+    // The void runs past the stair room to the front wall, over the overhang, up to the stair slot.
     room('void', 'Stair void', [4.7, 5.95], [2.95, 8.0], null, 6.3),
-    room('bedroom2', 'Bedroom 2', [0.2, 3.55], [0.2, 4.05], 'wood', 12.9),
+    // Bedroom 2 less the column and its infill, x 2.95–3.55, z 2.75–3.00.
+    room('bedroom2', 'Bedroom 2', [0.2, 2.95], [0.2, 4.05], 'wood', 12.7, {
+      extra: [
+        { x: [2.95, 3.55], z: [0.2, 2.75] },
+        { x: [2.95, 3.55], z: [3.0, 4.05] },
+      ],
+    }),
     room('bedroom1', 'Bedroom 1', [0.2, 4.6], [4.15, 8.0], 'wood', 16.9),
   ],
-  netArea: 43.3,
+  netArea: 43.1,
 
   // The slab has a hole exactly the void's outline; strips under the east and south walls stay so
   // the walls bear on it all round, and the last metre cantilevers over the street.
@@ -78,7 +90,7 @@ export const FIRST = Object.freeze({
   ],
 
   clearZones: [
-    clearZone('D6', [2.95, 4.25], [2.65, 3.65]),
+    clearZone('D6', [2.95, 4.25], [3.0, 3.9]),
     clearZone('D7', [3.65, 4.65], [3.45, 4.75]),
     clearZone('D11', [4.55, 5.45], [1.0, 2.3]),
   ],
@@ -92,7 +104,8 @@ export const FIRST = Object.freeze({
     piece('bed2', 'Bed, bedroom 2', 'bedding', [part(1.4, 1.9, 0.5, 1.0, 2.98)]),
     piece('headboard2', 'Headboard, bedroom 2', 'joinery', [part(1.5, 0.12, 0.5, 1.0, 3.99)], { touches: ['P7'] }),
     piece('nightstand2', 'Nightstand, bedroom 2', 'joinery', [part(0.4, 0.4, 0.45, 1.95, 3.8)]),
-    piece('wardrobe2', 'Wardrobe, bedroom 2', 'joinery', [part(0.6, 1.2, 2.1, 3.25, 1.6)], { touches: ['P5'] }),
+    // Bedroom 2's wardrobe runs on to the column, so column and joinery read as one front.
+    piece('wardrobe2', 'Wardrobe, bedroom 2', 'joinery', [part(0.6, 1.75, 2.1, 3.25, 1.875)], { touches: ['P5', 'C1', 'N1'] }),
     piece('desk2', 'Desk, bedroom 2', 'joinery', [part(0.9, 0.55, 0.74, 2.4, 0.475)], { touches: ['north'] }),
     // Linen cupboard in the landing's north-west corner, doors to the south, off the walking line.
     piece('linen', 'Linen cupboard', 'joinery', [part(0.9, 0.4, 2.1, 4.1, 1.9)], { touches: ['P9', 'P5'] }),
@@ -124,9 +137,9 @@ export const FIRST = Object.freeze({
       part(0.06, 0.15, 0.11, 2.4, 0.35, 0.74),
     ]),
     piece('cistern1', 'Cistern, upstairs', 'fittings', [part(0.42, 0.15, 0.4, 5.16, 0.275, 0.42)]),
-    // Bedroom 2's leaf is hinged on the south jamb so it lies along P7, clear of the bed; bedroom 1's
+    // Bedroom 2's leaf is hinged on the south jamb and swings back toward P7, clear of the bed; bedroom 1's
     // on the west jamb; the shower room's on the west jamb beside the screen.
-    piece('doorD6', 'Bedroom 2 door leaf, open', 'joinery', [part(0.8, 0.05, 2.05, 3.15, 3.575)]),
+    piece('doorD6', 'Bedroom 2 door leaf, open', 'joinery', [part(0.8, 0.05, 2.05, 3.15, 3.825)]),
     piece('doorD7', 'Bedroom 1 door leaf, open', 'joinery', [part(0.05, 0.8, 2.05, 3.775, 4.55)]),
     piece('doorD11', 'Shower room door leaf, open', 'joinery', [part(0.05, 0.7, 2.05, 4.675, 1.25)]),
   ],
@@ -138,8 +151,8 @@ export const FIRST = Object.freeze({
     label('bedroom1', 'Bedroom 1 · master', [2.3, 5.9], [0.6, 2.2]),
     label('bedroom2', 'Bedroom 2', [1.8, 2.2], [-2.2, -0.2]),
     label('landing', 'Landing · stair arrival', [4.8, 2.4], [1.6, -0.6]),
-    label('shower', 'Shower room · over the bathroom', [4.8, 0.9], [1.4, -1.6]),
-    label('void', 'Stair void · light well', [5.35, 5.5], [1.2, 0.8]),
+    label('shower', 'Shower room · stack in the corner duct', [4.8, 0.9], [1.4, -1.6]),
+    label('void', 'Stair void', [5.35, 5.5], [1.2, 0.8]),
   ],
 
   clearances: [
@@ -155,7 +168,7 @@ export const FIRST = Object.freeze({
       axis: 'x',
       at: 2.95,
       direction: -1,
-      span: [1.0, 2.2],
+      span: [1.0, 2.75],
       ignore: ['wardrobe2'],
       expected: 1.25,
     }),
