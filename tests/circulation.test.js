@@ -12,7 +12,8 @@ describe('ground-floor circulation', () => {
 
   it.each([
     ['the stair foot', [3.35, 6.0]],
-    ['inside the kitchen\'s glass door', [4.15, 2.5]],
+    ['inside the kitchen door, under the flight', [5.15, 2.6]],
+    ['the kitchen\'s cooking end', [4.3, 1.5]],
     ['the hall, for the WC door', [1.9, 2.5]],
     ['the far side of the dining table', [3.9, 4.8]],
   ])('leaves a 0.90 m walk from the front door to %s', (_, target) => {

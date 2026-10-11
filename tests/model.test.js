@@ -10,7 +10,7 @@ import { checkStairAlignment, checkStairWidth } from '../src/checks/stair.js';
 import { room, roomRects, wall } from '../src/spec/helpers.js';
 import { buildLevel, findPiece, findRoom, findWall } from '../src/model/level.js';
 import { intersects, rectsOverlapInPlan } from '../src/model/box.js';
-import { guardParts, handrailBox, handrailCentrelineY, landingHeight, landingParts, nosings, starterRect, stringerBoxes, treadBoxes } from '../src/model/stair.js';
+import { guardParts, handrailBox, handrailCentrelineY, landingHeight, landingParts, nosingLineY, nosings, starterRect, stringerBoxes, treadBoxes } from '../src/model/stair.js';
 
 describe('stair geometry', () => {
   it('climbs three starter steps east, crosses the landing and takes the main flight north', () => {
@@ -131,8 +131,9 @@ describe('level models', () => {
     expect(chair.boxes).toHaveLength(2);
     expect(chair.boxes[1]).toMatchObject({ min: [1.555, 0.45, 4.55], max: [1.635, 0.9, 5] });
     expect(findPiece(ground, 'diningTable').boxes).toHaveLength(5);
-    const plant = findPiece(ground, 'plant', { dressing: true });
-    expect(plant.boxes.map((b) => b.material)).toEqual(['joinery', 'structure']);
+    // A part may override its piece's material: the terrace door's glass leaf has a black frame.
+    const leaf = first.facadeDressing.find((entry) => entry.piece.id === 'slidingLeafD13');
+    expect(leaf.boxes.map((b) => b.material)).toEqual(['glazing', 'frame', 'frame', 'frame', 'frame']);
   });
 
   it('cuts the first level slab to the void outline and gives finish patches to every room rectangle but the void', () => {
@@ -238,16 +239,24 @@ describe('column C1', () => {
     }
   });
 
-  it('closes the kitchen with a full-height glass wall from the column to the flight: a fixed pane and a 0.90 m sliding door', () => {
+  it('closes the kitchen from the living room with a solid wall from the column to the flight', () => {
     const ground = levelById(house, 'ground');
     const p10 = wallOf(ground.spec, 'P10');
     expect([p10.from, p10.to]).toEqual([COLUMN.x[1], STAIR.x[0]]);
-    const [pane, slider] = p10.openings;
-    expect([pane.kind, pane.sill, pane.head, pane.transom]).toEqual(['window', 0, WALL_HEIGHT, null]);
-    expect([slider.kind, slider.leaf, slider.frame, slider.head]).toEqual(['door', false, true, WALL_HEIGHT]);
-    expect(slider.to - slider.from).toBeCloseTo(0.9, 9);
+    expect(p10.openings).toEqual([]);
     // Flush with the column's south face on the living side.
     expect(findWall(ground.model, 'P10').envelope.max[2]).toBe(COLUMN.z[1]);
+  });
+
+  it('enters the kitchen under the top of the flight, through a 0.90 m door in P6 with 2.00 m clear over its approach', () => {
+    const ground = levelById(house, 'ground');
+    const door = wallOf(ground.spec, 'P6').openings.find((o) => o.id === 'D3');
+    expect(door.kind).toBe('door');
+    expect(door.to - door.from).toBeCloseTo(0.9, 9);
+    expect(door.from).toBeCloseTo(STAIR.x[0], 9);
+    const zone = ground.spec.clearZones.find((z) => z.opening === 'D3');
+    const under = STAIR.steel.stringer.belowNosing + STAIR.steel.stringer.depth;
+    expect(nosingLineY(STAIR, zone.z[1]) - under).toBeGreaterThanOrEqual(2.0 - 1e-9);
   });
 
   it('builds the hall unit into a niche in the wall, flush with its face, from P1 to the column', () => {

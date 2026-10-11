@@ -130,8 +130,7 @@ Footprint 6.15 × 7.20 m, gross 44.28 m² to the exterior face; net 37.75 m² (t
 | Win3 | west, x 0.10 | z 1.00 – 1.80 | 0.80 | 1.20 | 2.40 | window |
 | Win4 | west, x 0.10 | z 4.70 – 6.50 | 1.80 | 0.90 | 2.40 | window |
 | D2 | P1, z 1.90 | x 2.05 – 2.75 | 0.70 | 0.00 | 2.05 | door |
-| G1 | P10, z 2.95 | x 3.20 – 3.70 | 0.50 | 0.00 | 2.60 | glazed to ceiling |
-| D3 | P10, z 2.95 | x 3.70 – 4.60 | 0.90 | 0.00 | 2.60 | opening, no leaf |
+| D3 | P6, z 3.15 | x 4.70 – 5.60 | 0.90 | 0.00 | 2.05 | door |
 
 Blind walls, no openings: east.
 
@@ -141,7 +140,7 @@ Blind walls, no openings: east.
 |---|---|
 | D1 | x 1.85 – 2.95, z 5.80 – 7.00 |
 | D2 | x 1.95 – 2.85, z 1.25 – 2.45 |
-| kitchen | x 3.70 – 4.60, z 2.30 – 3.60 |
+| D3 | x 4.70 – 5.60, z 2.30 – 4.00 |
 | stairFoot | x 3.20 – 4.16, z 6.20 – 6.95 |
 
 ### Furniture (position = centre, footprint w × d, height from floor)
@@ -153,7 +152,7 @@ A piece may touch a wall face only where the `Touches` column says so. Everywher
 | Sofa | 0.85 × 2.10 × 0.80 | 0.63, 4.60 | west | x 0.20 – 1.05, z 3.55 – 5.65 |
 | Armchair | 2 boxes | 0.70, 6.15 | — | x 0.30 – 1.10, z 5.75 – 6.55 |
 | Sideboard | 1.00 × 0.40 × 0.85 | 1.05, 6.80 | south | x 0.55 – 1.55, z 6.60 – 7.00 |
-| TV unit | 0.40 × 1.30 × 0.50 | 5.75, 3.90 | east | x 5.55 – 5.95, z 3.25 – 4.55 |
+| TV unit | 0.35 × 1.30 × 0.50 | 5.78, 4.40 | east | x 5.60 – 5.95, z 3.75 – 5.05 |
 | Dining table | 5 boxes | 2.43, 4.78 | — | x 1.83 – 3.03, z 4.38 – 5.17 |
 | Chair W | 2 boxes | 1.78, 4.78 | — | x 1.55 – 2.00, z 4.55 – 5.00 |
 | Chair E | 2 boxes | 3.08, 4.78 | — | x 2.85 – 3.31, z 4.55 – 5.00 |
@@ -161,7 +160,7 @@ A piece may touch a wall face only where the `Touches` column says so. Everywher
 | Chair S | 2 boxes | 2.43, 5.42 | — | x 2.21 – 2.65, z 5.20 – 5.65 |
 | Kitchen north run | 2.15 × 0.60 × 0.90 | 4.28, 0.50 | north, P8 | x 3.20 – 5.35, z 0.20 – 0.80 |
 | Kitchen east run | 0.60 × 1.35 × 0.90 | 5.65, 1.48 | east | x 5.35 – 5.95, z 0.80 – 2.15 |
-| Fridge | 0.65 × 0.60 × 1.80 | 5.63, 2.50 | east | x 5.30 – 5.95, z 2.20 – 2.80 |
+| Fridge | 0.60 × 0.65 × 1.80 | 3.50, 1.18 | P8 | x 3.20 – 3.80, z 0.85 – 1.50 |
 | Wall cabinets | 0.35 × 1.35 × 0.60, from y 1.50 | 5.78, 1.48 | east | x 5.60 – 5.95, z 0.80 – 2.15 |
 | Tall cabinet | 0.50 × 0.95 × 2.10 | 3.45, 2.02 | P8, P8b | x 3.20 – 3.70, z 1.55 – 2.50 |
 | Washing machine | 0.60 × 0.60 × 0.85 | 0.50, 0.50 | north, west | x 0.20 – 0.80, z 0.20 – 0.80 |
@@ -177,14 +176,13 @@ A piece may touch a wall face only where the `Touches` column says so. Everywher
 | Worktop | 2 boxes | 4.28, 0.50 | — | x 3.20 – 5.95, z 0.20 – 2.15 |
 | Hob | 0.50 × 0.58 × 0.01, from y 0.94 | 5.65, 1.30 | — | x 5.40 – 5.90, z 1.01 – 1.59 |
 | Sink | 2 boxes | 4.60, 0.50 | — | x 4.35 – 4.85, z 0.27 – 0.70 |
-| TV | 0.04 × 1.10 × 0.62, from y 0.50 | 5.59, 3.90 | — | x 5.57 – 5.61, z 3.35 – 4.45 |
+| TV | 0.04 × 1.10 × 0.62, from y 0.50 | 5.63, 4.40 | — | x 5.61 – 5.65, z 3.85 – 4.95 |
 | Floor lamp | 3 boxes | 0.50, 3.25 | — | x 0.33 – 0.68, z 3.08 – 3.42 |
-| Plant | 2 boxes | 5.10, 4.60 | — | x 4.75 – 5.45, z 4.25 – 4.95 |
 | Cistern | 0.15 × 0.42 × 0.40, from y 0.42 | 0.28, 1.49 | — | x 0.20 – 0.35, z 1.28 – 1.70 |
 | Front door leaf, open | 0.05 × 1.00 × 2.10 | 1.98, 6.50 | — | x 1.95 – 2.00, z 6.00 – 7.00 |
 | WC door leaf, open | 0.05 × 0.70 × 2.05 | 2.73, 1.50 | — | x 2.70 – 2.75, z 1.15 – 1.85 |
 | Decor on the hall shelves | 3 boxes | 3.06, 2.15 | — | x 2.99 – 3.13, z 2.09 – 2.60 |
-| Kitchen sliding glass door, open | 5 boxes | 3.25, 3.03 | — | x 2.80 – 3.70, z 3.01 – 3.05 |
+| Kitchen door leaf, open | 0.05 × 0.90 × 2.05 | 5.63, 2.65 | — | x 5.60 – 5.65, z 2.20 – 3.10 |
 
 ### Clearances (check 10)
 
@@ -193,7 +191,7 @@ A piece may touch a wall face only where the `Touches` column says so. Everywher
 | WC, ground floor | x = 0.85, eastward | z 1.28 – 1.70 | 0.60 | 2.10 |
 | Hand basin, ground floor | z = 0.55, southward | x 1.07 – 1.52 | 0.60 | 1.30 |
 | Laundry shelving (faces west) | x = 2.60, westward | z 0.20 – 1.00 | 0.60 | 1.07 |
-| Tall cabinet, kitchen (doors face east) | x = 3.70, eastward | z 1.55 – 2.50 | 0.60 | 1.60 |
+| Tall cabinet, kitchen (doors face east) | x = 3.70, eastward | z 1.55 – 2.50 | 0.60 | 1.65 |
 
 ## Part 5 — First level
 
