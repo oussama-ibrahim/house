@@ -13,25 +13,50 @@ export function roofHeights(roof = ROOF) {
   return { slabBottom, slabTop, parapetTop: slabTop + roof.parapetHeight };
 }
 
-export function roofBoxes(size = BASE_SIZE, roof = ROOF) {
-  const [halfW, halfD] = size.map((v) => v / 2);
-  const innerW = halfW - roof.parapetThickness;
-  const innerD = halfD - roof.parapetThickness;
-  const { slabBottom, slabTop, parapetTop } = roofHeights(roof);
-  const boxes = [box('roof:slab', [-halfW, slabBottom, -halfD], [halfW, slabTop, halfD], 'structure')];
-
-  // North and south parapets run the full width; east and west butt between them, so no corner
-  // faces coincide.
-  const parapets = {
-    north: [[-halfW, -halfD], [halfW, -innerD]],
-    south: [[-halfW, innerD], [halfW, halfD]],
-    west: [[-halfW, -innerD], [-innerW, innerD]],
-    east: [[innerW, -innerD], [halfW, innerD]],
+/**
+ * The four sides of a ring between an outer and an inner half-size, as [[x0, z0], [x1, z1]] in plan.
+ * North and south run the full width; east and west butt between them, so no corner faces coincide.
+ */
+function ring([outerW, outerD], [innerW, innerD]) {
+  return {
+    north: [[-outerW, -outerD], [outerW, -innerD]],
+    south: [[-outerW, innerD], [outerW, outerD]],
+    west: [[-outerW, -innerD], [-innerW, innerD]],
+    east: [[innerW, -innerD], [outerW, innerD]],
   };
-  for (const [name, [[x0, z0], [x1, z1]]] of Object.entries(parapets)) {
-    boxes.push(box(`roof:parapet:${name}`, [x0, slabTop, z0], [x1, parapetTop, z1], 'wall'));
+}
+
+/** One box per side of a ring, between heights `bottom` and `top`. */
+function ringBoxes(name, sides, bottom, top, material) {
+  return Object.entries(sides).map(([side, [[x0, z0], [x1, z1]]]) => box(`roof:${name}:${side}`, [x0, bottom, z0], [x1, top, z1], material));
+}
+
+/**
+ * The roof's boxes. `finish` dresses it for the street front: `walls` is the parapets' and slab
+ * edges' material, `coping` caps the parapets, a hair proud on both faces, and `front` lists pieces
+ * on the street (south) face, each `{ id, x, y, out, material }` with x from the west edge, y up from
+ * the slab's underside (the top level's wall top) and `out` outward from the face.
+ */
+export function roofBoxes(size = BASE_SIZE, finish = {}, roof = ROOF) {
+  const half = size.map((v) => v / 2);
+  const inner = half.map((v) => v - roof.parapetThickness);
+  const [halfW, halfD] = half;
+  const { slabBottom, slabTop, parapetTop } = roofHeights(roof);
+  const walls = finish.walls ?? 'wall';
+  const slabEdges = finish.walls ? { faces: { px: walls, nx: walls, pz: walls, nz: walls } } : {};
+  const boxes = [
+    box('roof:slab', [-halfW, slabBottom, -halfD], [halfW, slabTop, halfD], 'structure', slabEdges),
+    ...ringBoxes('parapet', ring(half, inner), slabTop, parapetTop, walls),
+    box('roof:membrane', [-inner[0], slabTop, -inner[1]], [inner[0], slabTop + roof.membraneThickness, inner[1]], 'slate'),
+  ];
+  if (finish.coping) {
+    const o = roof.copingOverhang;
+    const sides = ring(half.map((v) => v + o), inner.map((v) => v - o));
+    boxes.push(...ringBoxes('coping', sides, parapetTop, parapetTop + roof.copingThickness, finish.coping));
   }
-  boxes.push(box('roof:membrane', [-innerW, slabTop, -innerD], [innerW, slabTop + roof.membraneThickness, innerD], 'slate'));
+  for (const piece of finish.front ?? []) {
+    boxes.push(box(`roof:front:${piece.id}`, [piece.x[0] - halfW, slabBottom + piece.y[0], halfD + piece.out[0]], [piece.x[1] - halfW, slabBottom + piece.y[1], halfD + piece.out[1]], piece.material));
+  }
   return boxes;
 }
 
@@ -41,6 +66,6 @@ export function roofPlacement(levelOffset, size = BASE_SIZE, roof = ROOF) {
 }
 
 /** World bounds of the placed roof, for fitting the camera. */
-export function roofBounds(placement, size = BASE_SIZE, roof = ROOF) {
-  return translate(unionBounds(roofBoxes(size, roof)), placement);
+export function roofBounds(placement, size = BASE_SIZE, finish = {}, roof = ROOF) {
+  return translate(unionBounds(roofBoxes(size, finish, roof)), placement);
 }

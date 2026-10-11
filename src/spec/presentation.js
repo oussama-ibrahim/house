@@ -36,6 +36,9 @@ export const ROOF = Object.freeze({
   parapetHeight: 1.1,
   parapetThickness: 0.2,
   membraneThickness: 0.02,
+  // A facade's coping caps the parapet so it reads as the top edge of the box, not a separate band.
+  copingThickness: 0.04,
+  copingOverhang: 0.04,
   // Lifted off above the far corner of the first level, the way an exploded drawing shows a removed
   // roof. Shifted north-east, away from the camera and away from the ground level beside it, and
   // lifted 2.5 m, it never sits between the camera and either interior and fills frame that would

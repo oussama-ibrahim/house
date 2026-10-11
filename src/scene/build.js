@@ -66,11 +66,11 @@ function furnitureGroup(name, entries, materials) {
 }
 
 /** The lifted roof for a top level of the given size, centred on its own origin; the viewer places it. */
-export function buildRoofGroup(materials, size) {
+export function buildRoofGroup(materials, size, finish = {}) {
   const group = new Group();
   group.name = 'roof';
   // A lifted roof must not shade the rooms it floats near.
-  for (const part of roofBoxes(size)) group.add(meshForBox(part, materials, { castShadow: false }));
+  for (const part of roofBoxes(size, finish)) group.add(meshForBox(part, materials, { castShadow: false }));
   return group;
 }
 
@@ -124,6 +124,10 @@ export function buildLevelScene(spec, materials, language) {
     for (const box of cutEntry.solids) partitions.cut.add(meshForBox(box, materials));
   });
   group.add(partitions.full, partitions.cut);
+  // Facade pieces hang on their wall: they show with the full-height wall and hide when it is cut.
+  for (const { wall, boxes } of full.facadeDressing) {
+    for (const box of boxes) exterior[wall].full.add(meshForBox(box, materials, { outline: false }));
+  }
 
   const handrail = full.handrail ? meshForRotatedBox(full.handrail, materials) : null;
   if (handrail) group.add(handrail);

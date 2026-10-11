@@ -13,7 +13,7 @@ import {
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { CAMERA, LIGHTING, VIEWPORT_HEIGHT } from '../spec/global.js';
-import { DEFAULT_DESIGN, DESIGN_IDS } from '../spec/designs.js';
+import { DEFAULT_DESIGN, DESIGN_IDS, designById } from '../spec/designs.js';
 import { DEFAULT_LAYOUT, DEFAULT_TOGGLES, DEFAULT_VIEW_MODE, FIT_MARGIN, FIT_MARGIN_X, LAYOUTS, VIEW_MODES } from '../spec/presentation.js';
 import { DEFAULT_LANGUAGE, LANGUAGES } from '../i18n/index.js';
 import { boxCorners, fitCamera, orbitPosition } from '../model/camera.js';
@@ -89,10 +89,11 @@ export function createViewer(container, { language = DEFAULT_LANGUAGE } = {}) {
   const designs = Object.fromEntries(
     DESIGN_IDS.map((id) => {
       const levels = levelSpecs(id).map((spec) => buildLevelScene(spec, materials, state.language));
-      const roof = buildRoofGroup(materials, roofSize(id));
+      const roofFinish = designById(id).roof;
+      const roof = buildRoofGroup(materials, roofSize(id), roofFinish);
       for (const level of levels) scene.add(level.group);
       scene.add(roof);
-      return [id, { id, levels, roof }];
+      return [id, { id, levels, roof, roofFinish }];
     }),
   );
   const active = () => designs[state.design];
@@ -159,7 +160,7 @@ export function createViewer(container, { language = DEFAULT_LANGUAGE } = {}) {
       points.push(...translated(level.fitPoints.built, offset));
       if (level.layers.labels.visible || level.layers.dimensions.visible) points.push(...translated(level.fitPoints.annotations, offset));
     }
-    if (design.roof.visible) points.push(...boxCorners(roofBounds(design.roof.position.toArray(), roofSize(design.id))));
+    if (design.roof.visible) points.push(...boxCorners(roofBounds(design.roof.position.toArray(), roofSize(design.id), design.roofFinish)));
     return points;
   }
 

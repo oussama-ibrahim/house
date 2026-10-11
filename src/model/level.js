@@ -26,6 +26,10 @@ export function buildLevel(spec, options = {}) {
     handrail: spec.stair ? handrailBox(spec.stair) : null,
     // Steelwork of the main flight: sloped stringers and guard rail, plus the guard's posts.
     stairwork: spec.stair ? stairwork(spec.stair) : { sloped: [], boxes: [] },
+    // Pieces fixed to an exterior wall's outer face, drawn with that wall and never measured.
+    facadeDressing: Object.entries(spec.facadeDressing ?? {}).flatMap(([wall, pieces]) =>
+      furnitureBoxes(pieces).map((entry) => ({ ...entry, wall })),
+    ),
   };
 }
 

@@ -144,10 +144,13 @@ export function envelopeFaces(box, [width, depth]) {
  */
 export function cladSolids(solids, wall, size, finish) {
   if (!finish || !wall.exterior) return solids;
-  return solids.map((solid) => {
-    const faces = envelopeFaces(solid, size);
-    return faces.length ? { ...solid, faces: Object.fromEntries(faces.map((face) => [face, finish])) } : solid;
-  });
+  return solids.map((solid) => withFacadeFinish(solid, size, finish));
+}
+
+/** The box with `finish` on whichever of its faces lie on the level's envelope, if any do. */
+export function withFacadeFinish(box, size, finish) {
+  const faces = envelopeFaces(box, size);
+  return faces.length ? { ...box, faces: Object.fromEntries(faces.map((face) => [face, finish])) } : box;
 }
 
 /** Unit vector pointing out of the building through an exterior wall. */
