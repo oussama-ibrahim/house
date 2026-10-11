@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { wallOf } from './support.js';
 import { CUTAWAY_WALL_HEIGHT, WALL_HEIGHT } from '../src/spec/global.js';
 import { door, wall, windowOpening } from '../src/spec/helpers.js';
 import { GROUND } from '../src/spec/ground.js';
@@ -7,7 +8,7 @@ import { size } from '../src/model/box.js';
 import { cladSolids, envelopeFaces, splitWall, validateWall } from '../src/model/walls.js';
 import { box } from '../src/model/box.js';
 
-const wallById = (id) => GROUND.walls.find((w) => w.id === id);
+const wallById = (id) => wallOf(GROUND, id);
 const byRole = (solids, role) => solids.filter((s) => s.role === role);
 
 describe('splitWall', () => {

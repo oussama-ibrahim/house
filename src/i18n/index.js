@@ -56,6 +56,7 @@ const SCENE_AR = Object.freeze({
   'Stair · steel flight, open beneath': 'الدرج · درج معدني مفتوح من تحته',
   'Main entrance door': 'باب المدخل الرئيسي',
   'Bedroom 1 · master': 'غرفة النوم 1 · الرئيسية',
+  Dressing: 'غرفة الملابس',
   'Bedroom 2': 'غرفة النوم 2',
   'Landing · stair arrival': 'البسطة · وصول الدرج',
   Landing: 'البسطة',

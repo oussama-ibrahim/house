@@ -7,12 +7,12 @@ const WALKWAY = 0.9;
 describe('ground-floor circulation', () => {
   const ground = levelById(buildHouse({ cutaway: false }), 'ground').model;
   const grid = clearWidthGrid(ground);
-  // Just inside the front door, which opens at the stair foot.
-  const frontDoor = [3.35, 6.9];
+  // Just inside the front door, against the street-wall column beside the stair.
+  const frontDoor = [2.45, 6.9];
 
   it.each([
     ['the stair foot', [3.35, 6.0]],
-    ['the kitchen opening', [4.25, 2.7]],
+    ['inside the kitchen\'s glass door', [4.15, 2.5]],
     ['the hall, for the WC door', [1.9, 2.5]],
     ['the far side of the dining table', [3.9, 4.8]],
   ])('leaves a 0.90 m walk from the front door to %s', (_, target) => {

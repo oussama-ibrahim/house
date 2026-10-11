@@ -1,6 +1,16 @@
 // Small constructors so the level specs read like the tables in the document.
 import { WINDOW_TYPES } from './global.js';
 
+/** Centre of a [from, to] range. */
+export function midpoint([from, to]) {
+  return (from + to) / 2;
+}
+
+/** Length of a [from, to] range. */
+export function extent([from, to]) {
+  return to - from;
+}
+
 /** Interior envelope of a level: from the wall thickness in to the far faces, per axis. */
 export function interiorOf(spec, wallThickness = 0.2) {
   const [width, depth] = spec.size;
@@ -23,8 +33,16 @@ export function wall(id, axis, at, thickness, from, to, openings = [], options =
  * A structural column, modelled as a short wall so the splitter, the cut heights and every wall
  * check treat it exactly like one; `column: true` keeps it out of the partition tables.
  */
-export function column({ id, x, z }) {
-  return { ...wall(id, 'x', (z[0] + z[1]) / 2, z[1] - z[0], x[0], x[1]), column: true };
+export function column({ id, x, z }, options = {}) {
+  return { ...wall(id, 'x', midpoint(z), extent(z), x[0], x[1], [], options), column: true };
+}
+
+/**
+ * The gap an exterior wall leaves for a column standing in its line: full height, nothing emitted,
+ * so the column and the wall never overlap. The column itself is passed with `exterior: true`.
+ */
+export function columnPocket({ id, x }) {
+  return { id, kind: 'column', from: x[0], to: x[1], sill: 0, head: Infinity };
 }
 
 /** `frame: true` gives a leafless opening a black frame, as in a glazed screen with a sliding leaf. */

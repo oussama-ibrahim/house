@@ -22,6 +22,13 @@ export const UPPER_INTERIOR = Object.freeze({ min: 0.2, xMax: 5.95, zMax: 8.0 })
 // from the party wall's outer face and 4.20 m from the street front's outer face, both to its near
 // edge. Both levels share the north-west origin, so it has the same x–z on each.
 export const COLUMN = Object.freeze({ id: 'C1', x: Object.freeze([2.95, 3.2]), z: Object.freeze([2.75, 3.0]) });
+// The street-wall column, 0.25 × 0.25, foundation to roof: 2.95 m from the party wall's outer face
+// to its near edge, in line with C1, its outer face flush with the ground level's street face.
+// Upstairs the level overhangs 1 m, so there it stands inside bedroom 1.
+export const COLUMN_FRONT = Object.freeze({ id: 'C2', x: Object.freeze([2.95, 3.2]), z: Object.freeze([6.95, 7.2]) });
+// The stair opening in the first-floor slab as built: 3.00 m long, ending 1.80 m from the first
+// level's street-wall face, along the party wall. The stair is fitted to it, never the reverse.
+export const SLAB_OPENING = Object.freeze({ x: Object.freeze([4.7, 5.95]), z: Object.freeze([3.2, 6.2]) });
 
 // The window family. Every window is one of these types; the sill sits just above what stands
 // beneath the type, and all but the stair slot share a 2.40 head (a 0.20 m lintel under the slab).
@@ -33,14 +40,12 @@ export const WINDOW_TYPES = Object.freeze({
   high: Object.freeze({ width: 0.8, sill: 1.2, head: 2.4 }),
   // Over the kitchen worktop.
   kitchen: Object.freeze({ width: 2.1, sill: 1.1, head: 2.4 }),
-  // Bedroom 1's street front, floor to head: the pane below the transom is fixed laminated glass and
-  // is the guard, so no railing is needed over the street.
-  picture: Object.freeze({ width: 3.0, sill: 0, head: 2.4, transom: 0.9 }),
-  // The stair slot, one narrow fixed pane per level, wall top to wall top so the two read as one
-  // vertical strip broken only by the slab edge. The lower one stands over the landing (top 0.72),
-  // so it is fixed laminated glass; the upper one rises from the void.
-  slotLower: Object.freeze({ width: 0.45, sill: 0.9, head: 2.6 }),
-  slotUpper: Object.freeze({ width: 0.45, sill: 0, head: 2.6 }),
+  // The living room's street window, narrowed to fit between the corner and the front door, which
+  // stands against the street-wall column.
+  roomNarrow: Object.freeze({ width: 1.5, sill: 0.9, head: 2.4 }),
+  // The stair slot on the ground level's street wall, a narrow fixed pane up to the wall top over the
+  // stair landing, so fixed laminated glass. Upstairs the dressing fills the street wall instead.
+  slot: Object.freeze({ width: 0.45, sill: 0.9, head: 2.6 }),
 });
 
 // Visual only: the finish patch stands 10 mm proud of y = 0 so it never z-fights the slab top.

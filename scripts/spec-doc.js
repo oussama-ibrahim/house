@@ -66,11 +66,15 @@ function openingsSection(spec) {
   const rows = [];
   for (const wall of spec.walls) {
     for (const opening of [...wall.openings].sort((a, b) => a.from - b.from)) {
+      if (opening.kind === 'column') {
+        rows.push([opening.id, wallLabel(wall), `${wall.axis} ${range([opening.from, opening.to])}`, m(opening.to - opening.from), '—', '—', 'structural column in the wall line']);
+        continue;
+      }
       const kind = opening.kind === 'door' ? (opening.leaf ? 'door' : 'opening, no leaf') : opening.head >= WALL_HEIGHT ? 'glazed to ceiling' : 'window';
       rows.push([opening.id, wallLabel(wall), `${wall.axis} ${range([opening.from, opening.to])}`, m(opening.to - opening.from), m(opening.sill), m(opening.head), kind]);
     }
   }
-  const blind = spec.walls.filter((wall) => wall.exterior && wall.openings.length === 0).map((wall) => wall.id);
+  const blind = spec.walls.filter((wall) => wall.exterior && !wall.column && wall.openings.length === 0).map((wall) => wall.id);
   return [
     '### Openings',
     '',
@@ -169,12 +173,12 @@ function stairSection() {
   return [
     '## Part 3 — Staircase',
     '',
-    'This governs both levels. Build it first. A quarter-turn stair: a starter leg along the front wall, a landing in the south-east corner, then the main flight north against the party wall.',
+    'This governs both levels. Build it first. A quarter-turn stair fitted to the first-floor slab as built: its opening is 3.00 m long and ends 1.80 m from the first level\'s street wall. A starter leg along the front wall and a low landing in the south-east corner sit under the slab; the main flight climbs north against the party wall and fills the opening exactly.',
     '',
     table(['Item', 'Value'], [
       ['Risers', `${totalRisers} × ${STAIR.riser.toFixed(3)} = ${(totalRisers * STAIR.riser).toFixed(3)} m: ${STAIR.starter.risers} up to the landing, ${STAIR.risers} on the main flight`],
       ['Starter leg', `climbs eastward from x ${m(starter.x[0])} to ${m(starter.x[1])}, z ${range(starter.z)}; ${STAIR.starter.risers - 1} treads of ${STAIR.starter.going.toFixed(3)} m, tops at y = \`${m(STAIR.riser)}n\`, approached head-on from the living room`],
-      ['Landing', `x ${range(STAIR.x)}, z ${range(STAIR.landing.z)}, top at y ${m(base)}, solid to the floor`],
+      ['Landing', `x ${range(STAIR.x)}, z ${range(STAIR.landing.z)}, top at y ${m(base)}, a plate on a steel frame and four posts`],
       ['Main flight strip', `x ${range(STAIR.x)}, clear width ${m(STAIR.x[1] - STAIR.x[0])} m`],
       ['Main flight', `climbs northward from the landing, bottom at z = ${m(STAIR.bottomZ)}; ${STAIR.treadCount} × ${STAIR.going.toFixed(3)} = ${(STAIR.treadCount * STAIR.going).toFixed(3)} m run, extent z ${range([topZ, STAIR.bottomZ])}`],
       [`Main tread *n* (n = 1…${STAIR.treadCount})`, `x ${range(STAIR.x)}, z from \`${m(STAIR.bottomZ)} − ${m(STAIR.going)}n\` to \`${m(STAIR.bottomZ)} − ${m(STAIR.going)}(n−1)\`, top at y = \`${m(base)} + ${m(STAIR.riser)}n\``],
@@ -185,7 +189,7 @@ function stairSection() {
     '',
     `**Under the stair.** Open to the living room under both legs and the landing: no wall along the main flight's west side, only the guard. The TV unit stands against the party wall under the high end of the flight.`,
     '',
-    `**Headroom.** The underside of the upper slab is at ${m(WALL_HEIGHT)}. A step needs ${m(CHECKS.minHeadroom)} m clear, so only steps with a top at or below ${m(WALL_HEIGHT - CHECKS.minHeadroom)} m may sit under a slab: the starter leg does, under bedroom 1's floor. The void covers the landing and the whole main flight.`,
+    `**Headroom.** The underside of the upper slab is at ${m(WALL_HEIGHT)}. A step needs ${m(CHECKS.minHeadroom)} m clear, so only steps with a top at or below ${m(WALL_HEIGHT - CHECKS.minHeadroom)} m may sit under a slab: the starter leg and the landing, at ${m(base)}, do, under bedroom 1's floor. The void is the slab opening and covers the whole main flight.`,
     '',
     `**Arrival.** Riser ${totalRisers} lands at z = ${m(topZ)}, stepping north onto the landing at x ${range(STAIR.x)}, z ${range([topZ - STAIR.arrivalDepth, topZ])}, kept clear one flight width deep. The whole north edge of the void is the arrival opening; no railing there. The main flight has the ${rail.side} wall on one side and, on the ${STAIR.guard.side}, a guard of ${m(STAIR.guard.post)} m posts on every ${STAIR.guard.postEvery === 3 ? 'third' : `${STAIR.guard.postEvery}th`} tread under a ${m(STAIR.guard.section)} m rail at handrail height; the starter leg carries the same guard along its open north side, and the two rails meet at a newel on the landing's corner.`,
     '',
@@ -213,8 +217,8 @@ function checksSection() {
     'Run these as assertions, not as a reading exercise. `npm test` runs all of them; `npm run check` prints the report.',
     '',
     `1. Gross area per level = footprint width × depth (${LEVEL_SPECS.map((spec) => `${spec.name.toLowerCase()} ${grossAreaOf(spec).toFixed(2)} m²`).join(', ')}). Net areas match the room tables within ${CHECKS.netAreaTolerance} m².`,
-    `2. For every step, if any slab box overlaps its x–z extent, its top must leave ${m(CHECKS.minHeadroom)} m under the ${m(WALL_HEIGHT)} m slab underside. The starter leg sits under bedroom 1's floor; the landing and the main flight are under the void.`,
-    '3. The first-level void covers the ground-level stair room exactly, running on only over the overhang; the landing and main flight lie within it, the starter leg lies outside it under a slab, and the arrival sits over a single ground-level room (allowing for the partition along its edge).',
+    `2. For every step, if any slab box overlaps its x–z extent, its top must leave ${m(CHECKS.minHeadroom)} m under the ${m(WALL_HEIGHT)} m slab underside. The starter leg and the landing sit under bedroom 1's floor; the main flight is under the void.`,
+    '3. The first-level void, the slab opening as built, covers the main flight exactly; the landing and the starter leg lie outside it under a slab, and the arrival sits inside a finished room and over a single ground-level room (allowing for the partition along its edge).',
     `4. The main flight strip is ${m(STAIR.x[1] - STAIR.x[0])} m clear, a wall face or the guard on each flank, and no step box extends outside its leg.`,
     `5. No furniture bounding box intersects any wall box. A furniture box may touch a wall face only where its \`Touches\` column says so; elsewhere the minimum gap is ${m(CHECKS.minWallGap)} m.`,
     '6. No furniture bounding box intersects any clear zone.',
@@ -267,15 +271,14 @@ const parts = [
   '',
   '### Window family',
   '',
-  'Every window is one of these types; a level chooses only where each starts along its wall. Heads share one line, a 0.20 m lintel under the slab, except the stair slot, which runs to the wall top on both levels so its two panes read as one vertical strip.',
+  'Every window is one of these types; a level chooses only where each starts along its wall. Heads share one line, a 0.20 m lintel under the slab, except the stair slot, which runs to the wall top.',
   '',
   table(['Type', 'Width', 'Sill', 'Head', 'Used for'], [
     ['room', m(WINDOW_TYPES.room.width), m(WINDOW_TYPES.room.sill), m(WINDOW_TYPES.room.head), 'living room and bedrooms, sofa and bed height beneath'],
     ['high', m(WINDOW_TYPES.high.width), m(WINDOW_TYPES.high.sill), m(WINDOW_TYPES.high.head), 'WC, shower room, landing'],
     ['kitchen', m(WINDOW_TYPES.kitchen.width), m(WINDOW_TYPES.kitchen.sill), m(WINDOW_TYPES.kitchen.head), 'over the worktop'],
-    ['picture', m(WINDOW_TYPES.picture.width), m(WINDOW_TYPES.picture.sill), m(WINDOW_TYPES.picture.head), `bedroom 1's street front; transom at ${m(WINDOW_TYPES.picture.transom)}, fixed laminated glass below it as the guard`],
-    ['slotLower', m(WINDOW_TYPES.slotLower.width), m(WINDOW_TYPES.slotLower.sill), m(WINDOW_TYPES.slotLower.head), 'lower half of the stair slot, fixed laminated glass over the landing'],
-    ['slotUpper', m(WINDOW_TYPES.slotUpper.width), m(WINDOW_TYPES.slotUpper.sill), m(WINDOW_TYPES.slotUpper.head), 'upper half of the stair slot, fixed, rising from the void'],
+    ['roomNarrow', m(WINDOW_TYPES.roomNarrow.width), m(WINDOW_TYPES.roomNarrow.sill), m(WINDOW_TYPES.roomNarrow.head), 'the living room\'s street window, between the corner and the front door'],
+    ['slot', m(WINDOW_TYPES.slot.width), m(WINDOW_TYPES.slot.sill), m(WINDOW_TYPES.slot.head), 'the stair slot on the ground level, fixed laminated glass over the landing'],
   ]),
   '',
   `**Y convention.** Per level, y = 0 is the finished floor surface. The slab occupies y −${m(SLAB_THICKNESS)} to 0.00. Walls run y 0.00 to ${m(WALL_HEIGHT)}. Both levels are modelled at the same y, side by side.`,

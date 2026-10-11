@@ -12,14 +12,17 @@
 // living room takes the front and runs on under the open steel flight, where the TV sits against
 // the party wall. Bathing happens upstairs; the upper shower room's stack drops in a duct in the
 // kitchen's north-east corner.
-import { COLUMN, EXTERIOR_WALL_THICKNESS, FOOTPRINT, INTERIOR, PARTITION_THICKNESS, WALL_HEIGHT } from './global.js';
+import { COLUMN, COLUMN_FRONT, EXTERIOR_WALL_THICKNESS, FOOTPRINT, INTERIOR, PARTITION_THICKNESS, SLAB_OPENING, WALL_HEIGHT } from './global.js';
 import { STAIR } from './stair.js';
 import {
   clearZone,
   column,
+  columnPocket,
   clearance,
   door,
+  extent,
   label,
+  midpoint,
   part,
   piece,
   room,
@@ -34,15 +37,43 @@ const PART = PARTITION_THICKNESS;
 const { width: WIDTH, depth: DEPTH } = FOOTPRINT;
 
 // The column-line wall is the column's own width, so it is flush with the column on both sides.
-const COLUMN_LINE = (COLUMN.x[0] + COLUMN.x[1]) / 2;
-const COLUMN_WIDTH = COLUMN.x[1] - COLUMN.x[0];
+const COLUMN_LINE = midpoint(COLUMN.x);
+const COLUMN_WIDTH = extent(COLUMN.x);
 // The WC's south wall, which sets the hall's depth.
 const WC_FRONT = 1.9;
+const HALL_BACK = WC_FRONT + PARTITION_THICKNESS / 2;
+// Where the starter leg's first riser stands: its treads end at the main flight's west face.
+const STARTER_FOOT = STAIR.x[0] - (STAIR.starter.risers - 1) * STAIR.starter.going;
+// The main flight's top riser stands on the slab opening's north edge.
+const FLIGHT_TOP = SLAB_OPENING.z[0];
 // The kitchen's glass wall, under the beam, flush with the column's south face.
 const KITCHEN_FRONT = COLUMN.z[1] - PART / 2;
-const GLASS_DOOR_WIDTH = 0.9;
-// The back of the hall niche: what is left of the column-line wall behind a 0.20 m recess.
+// The glass door's east jamb lines up with P3's west face; it slides open over the fixed pane.
+const GLASS_DOOR = Object.freeze({ x: [STAIR.x[0] - PART - 0.9, STAIR.x[0] - PART], z: COLUMN.z[1] + 0.03 });
+// The hall niche, recessed into the column-line wall from P1 to the column: what is left of the
+// wall behind it is its 5 cm back, P8b.
 const NICHE_BACK = 0.05;
+const NICHE = Object.freeze({ x: [COLUMN.x[0], COLUMN.x[1] - NICHE_BACK], z: [HALL_BACK, COLUMN.z[0]] });
+
+/** A part filling the niche's plan, `h` high from `y0`. */
+function nichePart(h, y0 = 0) {
+  return part(extent(NICHE.x), extent(NICHE.z), h, midpoint(NICHE.x), midpoint(NICHE.z), y0);
+}
+
+/** The sliding glass door's leaf, a pane in a frame, parked open over the fixed pane. */
+function slidingLeafParts() {
+  const width = extent(GLASS_DOOR.x);
+  const x = GLASS_DOOR.x[0] - width / 2;
+  const { z } = GLASS_DOOR;
+  const frame = { material: 'frame' };
+  return [
+    part(width, 0.02, 2.55, x, z),
+    part(0.05, 0.04, 2.55, x - width / 2 + 0.025, z, 0, frame),
+    part(0.05, 0.04, 2.55, x + width / 2 - 0.025, z, 0, frame),
+    part(width, 0.04, 0.05, x, z, 2.5, frame),
+    part(width, 0.04, 0.05, x, z, 0, frame),
+  ];
+}
 
 export const GROUND = Object.freeze({
   id: 'ground',
@@ -59,14 +90,14 @@ export const GROUND = Object.freeze({
   walls: [
     // The kitchen window over the sink.
     wall('north', 'x', 0.1, EXT, 0, WIDTH, [windowOf('Win2', 'kitchen', 3.6)], { exterior: true }),
-    // The front door opens at the stair foot, the user's choice: the stair is reached without
-    // crossing the living room and the kitchen opening lies straight ahead, while the living room's
-    // street window takes the quiet corner. Win6 is the lower half of the stair slot, centred on
-    // the landing.
+    // The street-wall column C2 sets the front: the front door stands against its west face, the
+    // column its jamb, so the stair is under a metre past it and nobody crosses the living room;
+    // the living room's street window takes the corner. Win6 is the stair slot over the landing.
     wall('south', 'x', 7.1, EXT, 0, WIDTH, [
-      windowOf('Win5', 'room', 0.6),
-      door('D1', 2.85, 3.85, 2.1),
-      windowOf('Win6', 'slotLower', 5.1),
+      windowOf('Win5', 'roomNarrow', 0.3),
+      door('D1', 1.95, COLUMN_FRONT.x[0], 2.1),
+      columnPocket(COLUMN_FRONT),
+      windowOf('Win6', 'slot', 5.1),
     ], { exterior: true }),
     // Both west windows sit on the axes of the bedroom windows above them.
     wall('west', 'z', 0.1, EXT, INTERIOR.min, INTERIOR.zMax, [
@@ -80,57 +111,69 @@ export const GROUND = Object.freeze({
     // kitchen; the kitchen is entered from the living room. Between P1 and the column the wall is
     // recessed into a floor-to-ceiling niche, the user's idea, holding the hall's shoe cabinet and
     // shelves flush with the wall face; P8b is the niche's 5 cm back, flush with the kitchen face.
-    wall('P8', 'z', COLUMN_LINE, COLUMN_WIDTH, 0.2, WC_FRONT + PART / 2),
-    wall('P8b', 'z', COLUMN.x[1] - NICHE_BACK / 2, NICHE_BACK, WC_FRONT + PART / 2, COLUMN.z[0]),
+    wall('P8', 'z', COLUMN_LINE, COLUMN_WIDTH, 0.2, HALL_BACK),
+    wall('P8b', 'z', COLUMN.x[1] - NICHE_BACK / 2, NICHE_BACK, ...NICHE.z),
     column(COLUMN),
+    // The street-wall column, in the street wall's line, so it is cut and drawn with that wall.
+    column(COLUMN_FRONT, { exterior: true }),
     // P10 is the kitchen's glass wall, floor to beam with no sill or transom, the user's choice: G1
-    // fixed by the column, D3 the sliding glass door by the flight, drawn slid open over G1.
+    // fixed by the column, D3 the sliding glass door, drawn slid open over G1. The door stops at P3,
+    // which closes the fridge corner, so the way in keeps its full width.
     wall('P10', 'x', KITCHEN_FRONT, PART, COLUMN.x[1], STAIR.x[0], [
-      windowOpening('G1', COLUMN.x[1], STAIR.x[0] - GLASS_DOOR_WIDTH, 0, WALL_HEIGHT),
-      door('D3', STAIR.x[0] - GLASS_DOOR_WIDTH, STAIR.x[0], WALL_HEIGHT, { leaf: false, frame: true }),
+      windowOpening('G1', COLUMN.x[1], GLASS_DOOR.x[0], 0, WALL_HEIGHT),
+      door('D3', ...GLASS_DOOR.x, WALL_HEIGHT, { leaf: false, frame: true }),
     ]),
-    // P6 backs the fridge corner, between it and the space under the flight.
-    wall('P6', 'x', 2.9, PART, 4.7, 5.95),
+    // P6 backs the fridge corner at the flight's top, so the arrival above stands over the kitchen;
+    // P3 closes the corner between it and the glass wall.
+    wall('P6', 'x', FLIGHT_TOP - PART / 2, PART, STAIR.x[0], 5.95),
+    wall('P3', 'z', STAIR.x[0] - PART / 2, PART, COLUMN.z[1], FLIGHT_TOP),
   ],
 
   rooms: [
     room('wc', 'WC + laundry', [0.2, 2.95], [0.2, 1.85], 'tile', 4.5),
-    // The kitchen stops at P6 beside the flight and at the glass wall west of it.
-    room('kitchen', 'Kitchen', [3.2, 5.95], [0.2, 2.85], 'marble', 7.4, { extra: [{ x: [3.2, 4.7], z: [2.85, 2.9] }] }),
+    // The kitchen stops at the glass wall, and beside the flight at P6, under the arrival.
+    room('kitchen', 'Kitchen', [3.2, 5.95], [0.2, 2.85], 'marble', 7.7, {
+      extra: [
+        { x: [3.2, 4.7], z: [2.85, 2.9] },
+        { x: [4.7, 5.95], z: [2.85, FLIGHT_TOP - PART] },
+      ],
+    }),
     // The living room's main rectangle, the hall in front of the WC, and the strip beside the flight.
     room('living', 'Living / dining', [0.2, 4.6], [3.0, 7.0], 'marble', 20.8, {
       extra: [
         { x: [0.2, 2.95], z: [1.95, 3.0] },
-        { x: [4.6, 4.7], z: [3.0, 5.7] },
+        { x: [4.6, 4.7], z: [FLIGHT_TOP, STAIR.landing.z[0]] },
       ],
     }),
-    room('stair', 'Stair', [4.7, 5.95], [2.95, 7.0], 'marble', 5.1),
+    room('stair', 'Stair', [...STAIR.x], [FLIGHT_TOP, INTERIOR.zMax], 'marble', 4.8),
   ],
-  netArea: 37.7,
+  netArea: 37.8,
 
   slabs: [{ x: [0, WIDTH], z: [0, DEPTH] }],
 
   clearZones: [
-    clearZone('D1', [2.75, 3.89], [5.8, 7.0]),
+    // The column is the front door's east jamb, so the zone stops at it.
+    clearZone('D1', [1.85, COLUMN_FRONT.x[0]], [5.8, 7.0]),
     clearZone('D2', [1.95, 2.85], [1.25, 2.45]),
     // The way into the kitchen through the sliding glass door.
-    clearZone('kitchen', [3.8, 4.7], [2.3, 3.6]),
-    // A clear run-up in front of the starter leg's first riser.
-    clearZone('stairFoot', [2.85, 3.89], [5.7, 7.0]),
+    clearZone('kitchen', [...GLASS_DOOR.x], [2.3, 3.6]),
+    // A clear run-up in front of the starter leg's first riser, from the street-wall column.
+    clearZone('stairFoot', [COLUMN_FRONT.x[1], STARTER_FOOT], [STAIR.landing.z[0], COLUMN_FRONT.z[0]]),
   ],
 
   furniture: [
     // Dining for four in the middle, set 0.90 m clear of the beam line so the hall and the kitchen
-    // opening are reached along it from the front door; the sofa under the west window and an
-    // armchair in the street corner face the TV, which stands against the party wall under the high
-    // end of the open flight. A sideboard under the street window.
+    // are reached along it from the front door, which leads east past the stair foot and north; the
+    // sofa under the west window and an armchair in the street corner face the TV, which stands
+    // against the party wall under the high end of the open flight. A sideboard under the street
+    // window.
     piece('sofa', 'Sofa', 'upholstery', [part(0.85, 2.1, 0.8, 0.625, 4.6)], { touches: ['west'] }),
     piece('armchair', 'Armchair', 'upholstery', [
-      part(0.8, 0.8, 0.45, 1.7, 6.15),
-      part(0.15, 0.8, 0.4, 1.375, 6.15, 0.45),
+      part(0.8, 0.8, 0.45, 0.7, 6.15),
+      part(0.15, 0.8, 0.4, 0.375, 6.15, 0.45),
     ]),
-    piece('sideboard', 'Sideboard', 'joinery', [part(1.0, 0.4, 0.85, 1.85, 6.8)], { touches: ['south'] }),
-    piece('tvUnit', 'TV unit', 'joinery', [part(0.4, 1.3, 0.5, 5.75, 3.65)], { touches: ['east'] }),
+    piece('sideboard', 'Sideboard', 'joinery', [part(1.0, 0.4, 0.85, 1.05, 6.8)], { touches: ['south'] }),
+    piece('tvUnit', 'TV unit', 'joinery', [part(0.4, 1.3, 0.5, 5.75, 3.9)], { touches: ['east'] }),
     // A 1.20 table placed so the walk past its chair E clears the first step's corner by 0.90 m, the
     // sofa keeps 0.50 m of legroom and the beam-line walk to the hall stays 0.90 m wide.
     piece('diningTable', 'Dining table', 'joinery', [
@@ -163,7 +206,7 @@ export const GROUND = Object.freeze({
     piece('eastRun', 'Kitchen east run', 'fittings', [part(0.6, 1.35, 0.9, 5.65, 1.475)], { touches: ['east'] }),
     piece('fridge', 'Fridge', 'appliance', [part(0.65, 0.6, 1.8, 5.625, 2.5)], { touches: ['east'] }),
     piece('wallCabinets', 'Wall cabinets', 'fittings', [part(0.35, 1.35, 0.6, 5.775, 1.475, 1.5)], { touches: ['east'] }),
-    piece('tallCabinet', 'Tall cabinet', 'fittings', [part(0.6, 0.95, 2.1, 3.5, 2.025)], { touches: ['P8', 'P8b'] }),
+    piece('tallCabinet', 'Tall cabinet', 'fittings', [part(0.5, 0.95, 2.1, 3.45, 2.025)], { touches: ['P8', 'P8b'] }),
     // WC and laundry: machine in the north-west corner, basin on the north wall, WC against the west
     // wall facing east under the high window, shelving in the north-east corner.
     piece('washingMachine', 'Washing machine', 'fittings', [part(0.6, 0.6, 0.85, 0.5, 0.5)], { touches: ['north', 'west'] }),
@@ -173,10 +216,8 @@ export const GROUND = Object.freeze({
     // Built into the hall niche, flush with the wall face: a tilt-out shoe cabinet below and open
     // display shelves above, spanning from P1 to the column.
     piece('hallUnit', 'Hall shoe cabinet and display shelves', 'joinery', [
-      part(0.2, 0.8, 1.0, 3.05, 2.35),
-      part(0.2, 0.8, 0.03, 3.05, 2.35, 1.4),
-      part(0.2, 0.8, 0.03, 3.05, 2.35, 1.75),
-      part(0.2, 0.8, 0.03, 3.05, 2.35, 2.1),
+      nichePart(1.0),
+      ...[1.4, 1.75, 2.1].map((y0) => nichePart(0.03, y0)),
     ], { touches: ['P1', 'P8', 'P8b', 'C1'] }),
   ],
 
@@ -192,7 +233,7 @@ export const GROUND = Object.freeze({
       part(0.5, 0.4, 0.01, 4.6, 0.5, 0.94),
       part(0.03, 0.03, 0.15, 4.6, 0.28, 0.94),
     ]),
-    piece('tv', 'TV', 'appliance', [part(0.04, 1.1, 0.62, 5.59, 3.65, 0.5)]),
+    piece('tv', 'TV', 'appliance', [part(0.04, 1.1, 0.62, 5.59, 3.9, 0.5)]),
     piece('floorLamp', 'Floor lamp', 'appliance', [
       part(0.3, 0.3, 0.02, 0.5, 3.25),
       part(0.03, 0.03, 1.5, 0.5, 3.25, 0.02),
@@ -204,8 +245,8 @@ export const GROUND = Object.freeze({
       part(0.7, 0.7, 0.8, 5.1, 4.6, 0.4, { material: 'structure' }),
     ]),
     piece('cistern', 'Cistern', 'fittings', [part(0.15, 0.42, 0.4, 0.275, 1.49, 0.42)]),
-    // The front door is hinged on its west jamb, away from the starter steps.
-    piece('doorD1', 'Front door leaf, open', 'joinery', [part(0.05, 1.0, 2.1, 2.875, 6.5)]),
+    // The front door is hinged on its west jamb and opens back toward the sideboard.
+    piece('doorD1', 'Front door leaf, open', 'joinery', [part(0.05, 1.0, 2.1, 1.975, 6.5)]),
     // The WC leaf opens inward, hinged on the east jamb, and folds against P8.
     piece('doorD2', 'WC door leaf, open', 'joinery', [part(0.05, 0.7, 2.05, 2.725, 1.5)]),
     // Pieces on the hall unit's display shelves.
@@ -216,13 +257,7 @@ export const GROUND = Object.freeze({
     ]),
     // The glass door hangs from a track on the beam on the living side and parks slid open over the
     // fixed pane and the column's face.
-    piece('slidingLeaf', 'Kitchen sliding glass door, open', 'glazing', [
-      part(0.9, 0.02, 2.55, 3.35, 3.03),
-      part(0.05, 0.04, 2.55, 2.925, 3.03, 0, { material: 'frame' }),
-      part(0.05, 0.04, 2.55, 3.775, 3.03, 0, { material: 'frame' }),
-      part(0.9, 0.04, 0.05, 3.35, 3.03, 2.5, { material: 'frame' }),
-      part(0.9, 0.04, 0.05, 3.35, 3.03, 0, { material: 'frame' }),
-    ], { transparent: true }),
+    piece('slidingLeaf', 'Kitchen sliding glass door, open', 'glazing', slidingLeafParts(), { transparent: true }),
   ],
 
   // Offsets fan the pins outward; from the default south-east camera, north reads as up-right,
@@ -233,7 +268,7 @@ export const GROUND = Object.freeze({
     label('hall', 'Hall · WC door, shoe cabinet', [1.4, 2.5], [-2.2, 0.4]),
     label('kitchen', 'Kitchen · sliding glass wall', [4.3, 1.4], [0.2, -1.8]),
     label('stair', 'Stair · steel flight, open beneath', [5.35, 5.0], [0.6, 1.9]),
-    label('entrance', 'Main entrance door', [3.35, 7.05], [-1.8, 1.0]),
+    label('entrance', 'Main entrance door', [2.45, 7.05], [-1.8, 1.0]),
   ],
 
   clearances: [
@@ -263,11 +298,11 @@ export const GROUND = Object.freeze({
     }),
     clearance('tallCabinetFront', 'Tall cabinet, kitchen (doors face east)', {
       axis: 'x',
-      at: 3.8,
+      at: 3.7,
       direction: 1,
       span: [1.55, 2.5],
       ignore: ['tallCabinet'],
-      expected: 1.5,
+      expected: 1.6,
     }),
   ],
 

@@ -1,10 +1,10 @@
 // Checks 2, 3, 4 and 11: headroom, stair alignment across levels, clear width, handrail.
 import { CHECKS, PARTITION_THICKNESS, WALL_HEIGHT } from '../spec/global.js';
-import { interiorOf, roomRects } from '../spec/helpers.js';
+import { roomRects } from '../spec/helpers.js';
 import { EPS, overlap, rectContains, rectsOverlapInPlan } from '../model/box.js';
 import { levelById } from '../model/house.js';
 import { findRoom } from '../model/level.js';
-import { handrailCentrelineY, mainTreads, nosings, pitch, starterRect } from '../model/stair.js';
+import { flightTopZ, handrailCentrelineY, landingRect, mainTreads, nosings, pitch, starterRect } from '../model/stair.js';
 import { result } from './result.js';
 
 function treadRect(tread) {
@@ -54,36 +54,32 @@ function roomUnderLanding(ground, landing) {
 
 /** The strip the top riser lands on: the stair's width, one arrival depth north of the flight's top. */
 function arrivalRect(stair) {
-  const top = stair.bottomZ - stair.going * stair.treadCount;
+  const top = flightTopZ(stair);
   return { x: stair.x, z: [top - stair.arrivalDepth, top] };
 }
 
 export function checkStairAlignment(house) {
   const ground = levelById(house, 'ground');
   const first = levelById(house, 'first');
-  const stairRoom = findRoom(ground.model, 'stair');
   const voidRoom = findRoom(first.model, 'void');
   const stair = ground.spec.stair;
   const arrival = arrivalRect(stair);
   const failures = [];
-  // The void covers the stair room exactly, except that it may run on southward over the first
-  // level's overhang, where there is no ground room to leave uncovered.
-  const sameStrip = Math.abs(voidRoom.x[0] - stairRoom.x[0]) < EPS && Math.abs(voidRoom.x[1] - stairRoom.x[1]) < EPS && Math.abs(voidRoom.z[0] - stairRoom.z[0]) < EPS;
-  if (!sameStrip || voidRoom.z[1] < stairRoom.z[1] - EPS) failures.push('the first-level void does not cover the ground-level stair room');
-  const runsOn = voidRoom.z[1] > stairRoom.z[1] + EPS;
-  if (runsOn && stairRoom.z[1] < interiorOf(ground.spec).zMax - EPS) failures.push('the void runs past the stair room inside the ground level');
-  const flight = { x: stair.x, z: [stair.bottomZ - stair.going * stair.treadCount, stair.landing.z[1]] };
-  if (!rectContains(voidRoom, flight)) failures.push('the main flight and landing extend beyond the void');
-  // The starter leg is low enough to sit under the upper floor; it must never open into the void.
-  const starter = starterRect(stair);
-  if (rectsOverlapInPlan(voidRoom, starter)) failures.push('the starter leg opens into the void');
-  if (!first.spec.slabs.some((slab) => rectContains(slab, starter))) failures.push('no first-level slab covers the starter leg');
+  // The slab opening is a site fact: it must cover the main flight exactly, no more and no less.
+  const flight = { x: stair.x, z: [flightTopZ(stair), stair.bottomZ] };
+  const exact = [0, 1].every((i) => Math.abs(voidRoom.x[i] - flight.x[i]) < EPS && Math.abs(voidRoom.z[i] - flight.z[i]) < EPS);
+  if (!exact) failures.push(`the first-level void (x ${voidRoom.x.join('–')}, z ${voidRoom.z.join('–')}) does not cover the main flight exactly`);
+  // The landing and the starter leg sit under the upper floor; check 2 proves their headroom.
+  for (const [name, rect] of [['landing', landingRect(stair)], ['starter leg', starterRect(stair)]]) {
+    if (rectsOverlapInPlan(voidRoom, rect)) failures.push(`the ${name} opens into the void`);
+    if (!first.spec.slabs.some((slab) => rectContains(slab, rect))) failures.push(`no first-level slab covers the ${name}`);
+  }
   const landingRoom = first.spec.rooms.find((room) => room.finish && roomRects(room).some((rect) => rectContains(rect, arrival)));
   if (!landingRoom) failures.push('no finished first-level room contains the stair arrival');
   const below = roomUnderLanding(ground, arrival);
   if (!below) failures.push('the stair arrival does not sit over a single ground-level room');
-  return result(3, 'Stair void over the flight, arrival inside a room and over a room below', failures, [
-    `stair room x ${stairRoom.x.join('–')}, z ${stairRoom.z.join('–')}; starter leg x ${starter.x.join('–')} under the upper floor; arrival in ${landingRoom ? landingRoom.name.toLowerCase() : 'nothing'}, over ${below ? below.name.toLowerCase() : 'nothing'}`,
+  return result(3, 'Stair void over the main flight, arrival inside a room and over a room below', failures, [
+    `void x ${voidRoom.x.join('–')}, z ${voidRoom.z.join('–')} over the main flight; landing and starter leg under the upper floor; arrival in ${landingRoom ? landingRoom.name.toLowerCase() : 'nothing'}, over ${below ? below.name.toLowerCase() : 'nothing'}`,
   ]);
 }
 

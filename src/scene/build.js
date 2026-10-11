@@ -3,7 +3,7 @@ import { CUTAWAY_WALL_HEIGHT, WALL_HEIGHT } from '../spec/global.js';
 import { annotationPoints } from '../model/annotations.js';
 import { centre, size } from '../model/box.js';
 import { boxCorners } from '../model/camera.js';
-import { buildLevel, glazingBoxes, levelBounds, wallSolids } from '../model/level.js';
+import { buildLevel, levelBounds } from '../model/level.js';
 import { roofBoxes } from '../model/roof.js';
 import { BOX_FACES, outwardNormal } from '../model/walls.js';
 import { buildDimensionLayer, buildLabelLayer, disposeLayer } from './labels.js';

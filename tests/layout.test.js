@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { FLOOR_TO_FLOOR, FOOTPRINT, UPPER_FOOTPRINT, WALL_HEIGHT, WORLD_PLACEMENT } from '../src/spec/global.js';
+import { wallOf } from './support.js';
+import { FLOOR_TO_FLOOR, FOOTPRINT, SLAB_OPENING, UPPER_FOOTPRINT, UPPER_INTERIOR, WALL_HEIGHT, WORLD_PLACEMENT } from '../src/spec/global.js';
 import { ROOF } from '../src/spec/presentation.js';
 import { buildHouse } from '../src/model/house.js';
 import { levelPlacement, roofPosition } from '../src/model/layout.js';
@@ -26,10 +27,11 @@ describe('layouts', () => {
     expect(UPPER_FOOTPRINT.depth - FOOTPRINT.depth).toBeCloseTo(1, 9);
     const [groundSpec, firstSpec] = buildHouse({ cutaway: false }).levels.map((level) => level.spec);
     expect(firstSpec.size).toEqual([FOOTPRINT.width, UPPER_FOOTPRINT.depth]);
-    const south = (spec) => spec.walls.find((w) => w.id === 'south').at;
+    const south = (spec) => wallOf(spec, 'south').at;
     expect(south(firstSpec) - south(groundSpec)).toBeCloseTo(1, 9);
-    // The void keeps the stair room's strip and runs on over the overhang.
-    expect(firstSpec.rooms.find((r) => r.id === 'void')).toMatchObject({ x: groundSpec.rooms.find((r) => r.id === 'stair').x, z: [2.95, 8] });
+    // The void is the slab opening as built, ending 1.80 m from the first level's street wall.
+    expect(firstSpec.rooms.find((r) => r.id === 'void')).toMatchObject({ x: [...SLAB_OPENING.x], z: [...SLAB_OPENING.z] });
+    expect(UPPER_INTERIOR.zMax - SLAB_OPENING.z[1]).toBeCloseTo(1.8, 9);
   });
 
   it('rejects unknown layouts', () => {
@@ -47,9 +49,9 @@ describe('room size tags', () => {
     expect(tags.map((tag) => tag.id)).toEqual(['wc', 'kitchen', 'living', 'stair']);
     const kitchen = tags.find((tag) => tag.id === 'kitchen');
     expect(kitchen.size.map((v) => Number(v.toFixed(2)))).toEqual([2.75, 2.65]);
-    expect(kitchen.area).toBeCloseTo(7.3625, 9);
+    expect(kitchen.area).toBeCloseTo(7.675, 9);
     expect(tags.find((tag) => tag.id === 'wc').size.map((v) => Number(v.toFixed(2)))).toEqual([2.75, 1.65]);
-    expect(tags.find((tag) => tag.id === 'living').area).toBeCloseTo(20.7575, 9);
+    expect(tags.find((tag) => tag.id === 'living').area).toBeCloseTo(20.7875, 9);
   });
 
   it('gives every room its size and area, the stair void included', () => {
@@ -57,11 +59,11 @@ describe('room size tags', () => {
     const tags = roomDimensions(first.spec);
     expect(tags.map((tag) => tag.id)).toEqual(['landing', 'shower', 'void', 'bedroom2', 'bedroom1']);
     const voidTag = tags.find((tag) => tag.id === 'void');
-    expect(voidTag.size.map((v) => Number(v.toFixed(2)))).toEqual([1.25, 5.05]);
-    expect(voidTag.area).toBeCloseTo(6.3125, 9);
+    expect(voidTag.size.map((v) => Number(v.toFixed(2)))).toEqual([1.25, 3]);
+    expect(voidTag.area).toBeCloseTo(3.75, 9);
     const bedroom1 = tags.find((tag) => tag.id === 'bedroom1');
     expect(bedroom1.size.map((v) => Number(v.toFixed(2)))).toEqual([4.4, 3.85]);
-    expect(bedroom1.area).toBeCloseTo(16.94, 9);
+    expect(bedroom1.area).toBeCloseTo(19.235, 9);
     expect(tags.find((tag) => tag.id === 'shower').size.map((v) => Number(v.toFixed(2)))).toEqual([2.3, 1.4]);
   });
 });
