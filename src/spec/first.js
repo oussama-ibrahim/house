@@ -5,6 +5,7 @@
 // party wall to bedroom 1's door; bedroom 2 opens off its west side. The level projects 1 m over
 // the street; the stair void is the slab opening as built, 3.00 m long, and the 1.80 m between it
 // and the street wall belongs to bedroom 1, with a full-width dressing built into the street wall.
+import { firstFront } from './facades.js';
 import { COLUMN, COLUMN_FRONT, EXTERIOR_WALL_THICKNESS, PARTITION_THICKNESS, SLAB_OPENING, UPPER_FOOTPRINT, UPPER_INTERIOR, WALL_HEIGHT } from './global.js';
 import {
   clearZone,
@@ -61,6 +62,9 @@ function dressing2Parts() {
 // The void is the slab opening as built.
 const [VOID_START, VOID_END] = SLAB_OPENING.z;
 
+// Bedroom 1's street window, shared with the street front dressed round it.
+const BEDROOM_WINDOW = windowOf('Win11', 'room', 0.6);
+
 export const FIRST = Object.freeze({
   id: 'first',
   name: 'First level',
@@ -70,8 +74,7 @@ export const FIRST = Object.freeze({
   // south-east camera.
   caption: [7.25, -0.2],
   dimensionEdges: ['south', 'east'],
-  // Outer finish of the exterior walls: the overhanging box is clad, the ground level stays white.
-  facade: 'cladding',
+  ...firstFront({ window: BEDROOM_WINDOW }),
 
   // Every window is one of the family's types (WINDOW_TYPES); the west windows sit on the axes of the
   // ones below them. Bedroom 2 takes its daylight from the west only.
@@ -79,7 +82,7 @@ export const FIRST = Object.freeze({
     wall('north', 'x', 0.1, EXT, 0, WIDTH, [windowOf('Win9', 'high', 4.2)], { exterior: true }),
     // Bedroom 1's window lights the bed zone; east of the column the street wall is filled by the
     // dressing, the user's choice, so it carries no window.
-    wall('south', 'x', 8.1, EXT, 0, WIDTH, [windowOf('Win11', 'room', 0.6)], { exterior: true }),
+    wall('south', 'x', 8.1, EXT, 0, WIDTH, [BEDROOM_WINDOW], { exterior: true }),
     wall('west', 'z', 0.1, EXT, UPPER_INTERIOR.min, UPPER_INTERIOR.zMax, [
       windowOf('Win8', 'room', 0.5),
       windowOf('Win14', 'room', 4.7),

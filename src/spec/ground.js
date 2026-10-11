@@ -12,6 +12,7 @@
 // living room takes the front and runs on under the open steel flight, where the TV sits against
 // the party wall. Bathing happens upstairs; the upper shower room's stack drops in a duct in the
 // kitchen's north-east corner.
+import { groundFront } from './facades.js';
 import { COLUMN, COLUMN_FRONT, EXTERIOR_WALL_THICKNESS, FOOTPRINT, INTERIOR, PARTITION_THICKNESS, SLAB_OPENING, WALL_HEIGHT } from './global.js';
 import { STAIR } from './stair.js';
 import {
@@ -75,6 +76,10 @@ function slidingLeafParts() {
   ];
 }
 
+// The street wall's window and door, shared with the street front dressed round them.
+const STREET_WINDOW = windowOf('Win5', 'roomNarrow', 0.3);
+const FRONT_DOOR = door('D1', 1.95, COLUMN_FRONT.x[0], 2.1);
+
 export const GROUND = Object.freeze({
   id: 'ground',
   name: 'Ground level',
@@ -84,6 +89,7 @@ export const GROUND = Object.freeze({
   // east edge faces the gap where the first level's pins sit.
   caption: [-1.4, 8.8],
   dimensionEdges: ['south'],
+  ...groundFront({ window: STREET_WINDOW, door: FRONT_DOOR }),
 
   // North and south walls run the full footprint; west and east butt against them so no corner faces coincide.
   // Every window is one of the family's types (WINDOW_TYPES): the levels only choose where they start.
@@ -94,8 +100,8 @@ export const GROUND = Object.freeze({
     // column its jamb, so the stair is under a metre past it and nobody crosses the living room;
     // the living room's street window takes the corner. Win6 is the stair slot over the landing.
     wall('south', 'x', 7.1, EXT, 0, WIDTH, [
-      windowOf('Win5', 'roomNarrow', 0.3),
-      door('D1', 1.95, COLUMN_FRONT.x[0], 2.1),
+      STREET_WINDOW,
+      FRONT_DOOR,
       columnPocket(COLUMN_FRONT),
       windowOf('Win6', 'slot', 5.1),
     ], { exterior: true }),
@@ -246,7 +252,7 @@ export const GROUND = Object.freeze({
     ]),
     piece('cistern', 'Cistern', 'fittings', [part(0.15, 0.42, 0.4, 0.275, 1.49, 0.42)]),
     // The front door is hinged on its west jamb and opens back toward the sideboard.
-    piece('doorD1', 'Front door leaf, open', 'joinery', [part(0.05, 1.0, 2.1, 1.975, 6.5)]),
+    piece('doorD1', 'Front door leaf, open', 'woodSlat', [part(0.05, 1.0, 2.1, 1.975, 6.5)]),
     // The WC leaf opens inward, hinged on the east jamb, and folds against P8.
     piece('doorD2', 'WC door leaf, open', 'joinery', [part(0.05, 0.7, 2.05, 2.725, 1.5)]),
     // Pieces on the hall unit's display shelves.

@@ -105,9 +105,15 @@ export const COLOURS = Object.freeze({
   appliance: '#262626',
   glazing: '#9FC3D8',
   frame: '#1E1E1E',
-  // Wood-look cladding on the first level's outer faces, a shade deeper than the oak joinery so the
-  // overhanging box reads as one deliberate volume over the white ground floor.
-  cladding: '#A47A52',
+  // The street front, from the owner's reference image: beige render, a lighter beige for panels,
+  // dark marble, warm wood slats, near-black joints and backing, warm-white LED light and planting.
+  joint: '#1D1F21',
+  beige: '#CDBBA3',
+  lightBeige: '#DDD0BE',
+  darkMarble: '#4B4A4C',
+  woodSlat: '#9A6A40',
+  light: '#FFE3A3',
+  leaf: '#5E7A45',
 });
 export const GLAZING_OPACITY = 0.35;
 

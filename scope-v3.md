@@ -301,8 +301,14 @@ A piece may touch a wall face only where the `Touches` column says so. Everywher
 
 | Element | Hex |
 |---|---|
-| Walls; exterior faces of the ground level | `#F4F2EE` |
-| Facade cladding, outer faces of the first level | `#A47A52` |
+| Walls (interior faces) | `#F4F2EE` |
+| Street front: render on every outer face, the frame and the parapets | `#CDBBA3` |
+| Street front: panels round the two street windows | `#DDD0BE` |
+| Street front: pier, planters, entrance step | `#4B4A4C` |
+| Street front: slats, front door, soffit under the top band | `#9A6A40` |
+| Street front: slat backing, panel over the door, wall light | `#1D1F21` |
+| Street front: LED lines and downlights | `#FFE3A3` |
+| Street front: planting | `#5E7A45` |
 | Slab, structure, stair, worktops | `#C4BFB6` |
 | Wood floor (bedrooms) | `#CBA97D` |
 | Tiled floor (wet rooms, stair) | `#D6D3CC` |
