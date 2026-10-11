@@ -149,15 +149,14 @@ A piece may touch a wall face only where the `Touches` column says so. Everywher
 
 | Piece | w × d × h | Centre (x, z) | Touches | Extent |
 |---|---|---|---|---|
-| Sofa | 0.85 × 2.10 × 0.80 | 0.63, 4.60 | west | x 0.20 – 1.05, z 3.55 – 5.65 |
-| Armchair | 2 boxes | 0.70, 6.15 | — | x 0.30 – 1.10, z 5.75 – 6.55 |
+| TV unit | 1.20 × 0.40 × 0.50 | 3.95, 3.20 | P10 | x 3.35 – 4.55, z 3.00 – 3.40 |
+| Sofa | 1.80 × 0.85 × 0.80 | 3.70, 5.10 | — | x 2.80 – 4.60, z 4.67 – 5.53 |
 | Sideboard | 1.00 × 0.40 × 0.85 | 1.05, 6.80 | south | x 0.55 – 1.55, z 6.60 – 7.00 |
-| TV unit | 0.35 × 1.30 × 0.50 | 5.78, 4.40 | east | x 5.60 – 5.95, z 3.75 – 5.05 |
-| Dining table | 5 boxes | 2.43, 4.78 | — | x 1.83 – 3.03, z 4.38 – 5.17 |
-| Chair W | 2 boxes | 1.78, 4.78 | — | x 1.55 – 2.00, z 4.55 – 5.00 |
-| Chair E | 2 boxes | 3.08, 4.78 | — | x 2.85 – 3.31, z 4.55 – 5.00 |
-| Chair N | 2 boxes | 2.43, 4.13 | — | x 2.21 – 2.65, z 3.90 – 4.35 |
-| Chair S | 2 boxes | 2.43, 5.42 | — | x 2.21 – 2.65, z 5.20 – 5.65 |
+| Dining table | 5 boxes | 1.00, 5.20 | — | x 0.60 – 1.40, z 4.60 – 5.80 |
+| Chair N | 2 boxes | 1.00, 4.38 | — | x 0.78 – 1.23, z 4.15 – 4.60 |
+| Chair S | 2 boxes | 1.00, 6.03 | — | x 0.78 – 1.23, z 5.80 – 6.25 |
+| Chair E, north | 2 boxes | 1.63, 4.90 | — | x 1.40 – 1.85, z 4.67 – 5.13 |
+| Chair E, south | 2 boxes | 1.63, 5.50 | — | x 1.40 – 1.85, z 5.28 – 5.72 |
 | Kitchen north run | 2.15 × 0.60 × 0.90 | 4.28, 0.50 | north, P8 | x 3.20 – 5.35, z 0.20 – 0.80 |
 | Kitchen east run | 0.60 × 1.35 × 0.90 | 5.65, 1.48 | east | x 5.35 – 5.95, z 0.80 – 2.15 |
 | Fridge | 0.60 × 0.65 × 1.80 | 3.50, 1.18 | P8 | x 3.20 – 3.80, z 0.85 – 1.50 |
@@ -176,7 +175,8 @@ A piece may touch a wall face only where the `Touches` column says so. Everywher
 | Worktop | 2 boxes | 4.28, 0.50 | — | x 3.20 – 5.95, z 0.20 – 2.15 |
 | Hob | 0.50 × 0.58 × 0.01, from y 0.94 | 5.65, 1.30 | — | x 5.40 – 5.90, z 1.01 – 1.59 |
 | Sink | 2 boxes | 4.60, 0.50 | — | x 4.35 – 4.85, z 0.27 – 0.70 |
-| TV | 0.04 × 1.10 × 0.62, from y 0.50 | 5.63, 4.40 | — | x 5.61 – 5.65, z 3.85 – 4.95 |
+| TV | 1.10 × 0.04 × 0.62, from y 0.50 | 3.95, 3.04 | — | x 3.40 – 4.50, z 3.02 – 3.06 |
+| Plant | 2 boxes | 5.10, 4.60 | — | x 4.75 – 5.45, z 4.25 – 4.95 |
 | Floor lamp | 3 boxes | 0.50, 3.25 | — | x 0.33 – 0.68, z 3.08 – 3.42 |
 | Cistern | 0.15 × 0.42 × 0.40, from y 0.42 | 0.28, 1.49 | — | x 0.20 – 0.35, z 1.28 – 1.70 |
 | Front door leaf, open | 0.05 × 1.00 × 2.10 | 1.98, 6.50 | — | x 1.95 – 2.00, z 6.00 – 7.00 |
@@ -333,7 +333,7 @@ Run these as assertions, not as a reading exercise. `npm test` runs all of them;
 6. No furniture bounding box intersects any clear zone.
 7. No opaque furniture box intersects the vertical prism of any window opening: the opening span × sill-to-head height × 0.35 m into the room. Transparent elements (glazing, shower screens, the handrail) are exempt.
 8. Every partition is clipped to the level's interior envelope (0.20 in from every facade), so no partition end face is coplanar with a facade.
-9. Visibility. Sample a 5 × 5 grid on each target's top face and cast a ray to the default camera in cutaway mode (every wall at 1.20 m). Occluders are wall, slab and tread boxes only. Assert 60 % or more unobstructed. Expected: kitchen north run 100 %, fridge 100 %, sofa 100 %, double bed 100 %, bed, bedroom 2 80 %, desk, bedroom 2 100 %.
+9. Visibility. Sample a 5 × 5 grid on each target's top face and cast a ray to the default camera in cutaway mode (every wall at 1.20 m). Occluders are wall, slab and tread boxes only. Assert 60 % or more unobstructed. Expected: kitchen north run 100 %, fridge 100 %, sofa 88 %, double bed 100 %, bed, bedroom 2 80 %, desk, bedroom 2 100 %.
 10. In front of each wardrobe, WC and shower entry, over the full width, the clear distance to the nearest furniture or wall is at least 0.60 m (expected values in the clearance tables).
 11. The handrail centreline is 0.90 m above every tread nosing, and its underside clears every tread.
 

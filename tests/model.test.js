@@ -127,9 +127,9 @@ describe('level models', () => {
   const first = levelById(house, 'first').model;
 
   it('expands composite furniture into parts', () => {
-    const chair = findPiece(ground, 'chairW');
+    const chair = findPiece(ground, 'chairE1');
     expect(chair.boxes).toHaveLength(2);
-    expect(chair.boxes[1]).toMatchObject({ min: [1.555, 0.45, 4.55], max: [1.635, 0.9, 5] });
+    expect(chair.boxes[1]).toMatchObject({ min: [1.77, 0.45, 4.675], max: [1.85, 0.9, 5.125] });
     expect(findPiece(ground, 'diningTable').boxes).toHaveLength(5);
     // A part may override its piece's material: the terrace door's glass leaf has a black frame.
     const leaf = first.facadeDressing.find((entry) => entry.piece.id === 'slidingLeafD13');

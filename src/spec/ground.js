@@ -9,9 +9,9 @@
 // the stair's arrival. The WC stops 1.65 m deep, so in front of it a hall opens off the living room
 // for the WC door. The column is buried in the end of the column-line wall, and the beam rides on
 // walls, the kitchen's included, except across the hall's mouth, where it reads as a lintel. The
-// living room takes the front and runs on under the open steel flight, where the TV sits against
-// the party wall, south of the kitchen door's approach. Bathing happens upstairs; the upper shower
-// room's stack drops in a duct in the kitchen's north-east corner.
+// living room takes the front and runs on under the open steel flight; its TV hangs on the kitchen's
+// front wall, the dining table stands under the west window. Bathing happens upstairs; the upper
+// shower room's stack drops in a duct in the kitchen's north-east corner.
 import { groundFront } from './facades.js';
 import { COLUMN, COLUMN_FRONT, EXTERIOR_WALL_THICKNESS, FOOTPRINT, INTERIOR, PARTITION_THICKNESS, SLAB_OPENING } from './global.js';
 import { PARENTS_GARAGE } from './site.js';
@@ -60,6 +60,23 @@ const NICHE = Object.freeze({ x: [COLUMN.x[0], COLUMN.x[1] - NICHE_BACK], z: [HA
 /** A part filling the niche's plan, `h` high from `y0`. */
 function nichePart(h, y0 = 0) {
   return part(extent(NICHE.x), extent(NICHE.z), h, midpoint(NICHE.x), midpoint(NICHE.z), y0);
+}
+
+// The TV unit on the kitchen's front wall, centred between the column and P3.
+const TV_UNIT = Object.freeze({ x: 3.95, length: 1.2, depth: 0.4 });
+// The dining table's centre, its long side along the west wall, 0.40 m off it to clear the window's prism.
+const DINING = Object.freeze({ x: 1.0, z: 5.2 });
+const CHAIR = 0.45;
+
+/** A dining chair: a seat centred at (x, z) with its back on the given side, away from the table. */
+function diningChair(id, name, x, z, back) {
+  const offset = (CHAIR - 0.08) / 2;
+  const backPart = {
+    north: part(CHAIR, 0.08, CHAIR, x, z - offset, CHAIR),
+    south: part(CHAIR, 0.08, CHAIR, x, z + offset, CHAIR),
+    east: part(0.08, CHAIR, CHAIR, x + offset, z, CHAIR),
+  }[back];
+  return piece(id, name, 'joinery', [part(CHAIR, CHAIR, CHAIR, x, z), backPart]);
 }
 
 // The street wall's window and door, shared with the street front dressed round them.
@@ -150,43 +167,22 @@ export const GROUND = Object.freeze({
   ],
 
   furniture: [
-    // Dining for four in the middle, set 0.90 m clear of the beam line so the hall and the kitchen
-    // are reached along it from the front door, which leads east past the stair foot and north; the
-    // sofa under the west window and an armchair in the street corner face the TV, which stands
-    // against the party wall under the high end of the open flight. A sideboard under the street
-    // window.
-    piece('sofa', 'Sofa', 'upholstery', [part(0.85, 2.1, 0.8, 0.625, 4.6)], { touches: ['west'] }),
-    piece('armchair', 'Armchair', 'upholstery', [
-      part(0.8, 0.8, 0.45, 0.7, 6.15),
-      part(0.15, 0.8, 0.4, 0.375, 6.15, 0.45),
-    ]),
+    // The TV hangs on the kitchen's front wall and the sofa faces it from the middle of the room, the
+    // 1.30 m between them the way to the kitchen door under the flight. Dining for four stands along
+    // the west wall under the window, just clear of its prism, a chair at each end and two on the
+    // east side; between those and the sofa a 0.95 m walk leads from the front door to the hall. A
+    // sideboard under the street window.
+    piece('tvUnit', 'TV unit', 'joinery', [part(TV_UNIT.length, TV_UNIT.depth, 0.5, TV_UNIT.x, KITCHEN_FRONT + PART / 2 + TV_UNIT.depth / 2)], { touches: ['P10'] }),
+    piece('sofa', 'Sofa', 'upholstery', [part(1.8, 0.85, 0.8, 3.7, 5.1)]),
     piece('sideboard', 'Sideboard', 'joinery', [part(1.0, 0.4, 0.85, 1.05, 6.8)], { touches: ['south'] }),
-    piece('tvUnit', 'TV unit', 'joinery', [part(0.35, 1.3, 0.5, 5.775, 4.4)], { touches: ['east'] }),
-    // A 1.20 table placed so the walk past its chair E clears the first step's corner by 0.90 m, the
-    // sofa keeps 0.50 m of legroom and the beam-line walk to the hall stays 0.90 m wide.
     piece('diningTable', 'Dining table', 'joinery', [
-      part(1.2, 0.8, 0.05, 2.43, 4.775, 0.7),
-      part(0.07, 0.07, 0.7, 1.945, 4.49),
-      part(0.07, 0.07, 0.7, 2.915, 4.49),
-      part(0.07, 0.07, 0.7, 1.945, 5.06),
-      part(0.07, 0.07, 0.7, 2.915, 5.06),
+      part(0.8, 1.2, 0.05, DINING.x, DINING.z, 0.7),
+      ...[-1, 1].flatMap((dx) => [-1, 1].map((dz) => part(0.07, 0.07, 0.7, DINING.x + dx * 0.365, DINING.z + dz * 0.565))),
     ]),
-    piece('chairW', 'Chair W', 'joinery', [
-      part(0.45, 0.45, 0.45, 1.78, 4.775),
-      part(0.08, 0.45, 0.45, 1.595, 4.775, 0.45),
-    ]),
-    piece('chairE', 'Chair E', 'joinery', [
-      part(0.45, 0.45, 0.45, 3.08, 4.775),
-      part(0.08, 0.45, 0.45, 3.265, 4.775, 0.45),
-    ]),
-    piece('chairN', 'Chair N', 'joinery', [
-      part(0.45, 0.45, 0.45, 2.43, 4.125),
-      part(0.45, 0.08, 0.45, 2.43, 3.94, 0.45),
-    ]),
-    piece('chairS', 'Chair S', 'joinery', [
-      part(0.45, 0.45, 0.45, 2.43, 5.425),
-      part(0.45, 0.08, 0.45, 2.43, 5.61, 0.45),
-    ]),
+    diningChair('chairN', 'Chair N', DINING.x, DINING.z - 0.825, 'north'),
+    diningChair('chairS', 'Chair S', DINING.x, DINING.z + 0.825, 'south'),
+    diningChair('chairE1', 'Chair E, north', DINING.x + 0.625, DINING.z - 0.3, 'east'),
+    diningChair('chairE2', 'Chair E, south', DINING.x + 0.625, DINING.z + 0.3, 'east'),
     // L kitchen: the north run under the window from the column-line wall, a short run on the party
     // wall with the hob under the wall cabinets, and a tall wall on the column-line wall: the fridge
     // beside the north run and the pantry cabinet. The corner by the
@@ -222,7 +218,12 @@ export const GROUND = Object.freeze({
       part(0.5, 0.4, 0.01, 4.6, 0.5, 0.94),
       part(0.03, 0.03, 0.15, 4.6, 0.28, 0.94),
     ]),
-    piece('tv', 'TV', 'appliance', [part(0.04, 1.1, 0.62, 5.63, 4.4, 0.5)]),
+    piece('tv', 'TV', 'appliance', [part(1.1, 0.04, 0.62, TV_UNIT.x, KITCHEN_FRONT + PART / 2 + 0.04, 0.5)]),
+    // A plant under the flight, where the treads are still 1.40 m or more off the floor.
+    piece('plant', 'Plant', 'joinery', [
+      part(0.4, 0.4, 0.4, 5.1, 4.6),
+      part(0.7, 0.7, 0.8, 5.1, 4.6, 0.4, { material: 'structure' }),
+    ]),
     piece('floorLamp', 'Floor lamp', 'appliance', [
       part(0.3, 0.3, 0.02, 0.5, 3.25),
       part(0.03, 0.03, 1.5, 0.5, 3.25, 0.02),
@@ -292,6 +293,7 @@ export const GROUND = Object.freeze({
   visibilityTargets: [
     visibilityTarget('northRun', 100),
     visibilityTarget('fridge', 100),
-    visibilityTarget('sofa', 100),
+    // Mid-room, the sofa shows 88 % to the reference camera, the rest hidden by what stands nearer it.
+    visibilityTarget('sofa', 88),
   ],
 });
