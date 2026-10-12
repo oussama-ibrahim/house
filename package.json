@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "check": "node scripts/acceptance-report.js",
-    "spec-doc": "node scripts/spec-doc.js"
+    "spec-doc": "node scripts/spec-doc.js",
+    "plans": "node scripts/plans.js"
   },
   "dependencies": {
     "three": "^0.185.1"
