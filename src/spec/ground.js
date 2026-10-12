@@ -12,7 +12,7 @@
 // living room takes the front and runs on under the open steel flight; its TV hangs on the kitchen's
 // front wall, the dining table stands under the west window. Bathing happens upstairs; the upper
 // shower room's stack drops in a duct in the kitchen's north-east corner.
-import { groundFront } from './facades.js';
+import { groundFront, groundWestSide } from './facades.js';
 import { COLUMN, COLUMN_FRONT, EXTERIOR_WALL_THICKNESS, FOOTPRINT, INTERIOR, PARTITION_THICKNESS, SLAB_OPENING } from './global.js';
 import { PARENTS_GARAGE } from './site.js';
 import { STAIR } from './stair.js';
@@ -82,6 +82,10 @@ function diningChair(id, name, x, z, back) {
 // The street wall's window and door, shared with the street front dressed round them.
 const STREET_WINDOW = windowOf('Win5', 'roomNarrow', 0.3);
 const FRONT_DOOR = door('D1', 1.95, COLUMN_FRONT.x[0], 2.1);
+const STREET_FRONT = groundFront({ window: STREET_WINDOW, door: FRONT_DOOR });
+// The west wall's windows, shared with the side dressed round them on the house's own yard.
+const WC_WINDOW = windowOf('Win3', 'high', 1.0);
+const LIVING_WEST_WINDOW = windowOf('Win4', 'room', 4.7);
 
 export const GROUND = Object.freeze({
   id: 'ground',
@@ -92,7 +96,8 @@ export const GROUND = Object.freeze({
   // east edge faces the gap where the first level's pins sit.
   caption: [-1.4, 8.8],
   dimensionEdges: ['south'],
-  ...groundFront({ window: STREET_WINDOW, door: FRONT_DOOR }),
+  ...STREET_FRONT,
+  facadeDressing: { ...STREET_FRONT.facadeDressing, west: groundWestSide({ wc: WC_WINDOW, living: LIVING_WEST_WINDOW }) },
   neighbours: PARENTS_GARAGE,
 
   // North and south walls run the full footprint; west and east butt against them so no corner faces coincide.
@@ -111,8 +116,8 @@ export const GROUND = Object.freeze({
     ], { exterior: true }),
     // Both west windows sit on the axes of the bedroom windows above them.
     wall('west', 'z', 0.1, EXT, INTERIOR.min, INTERIOR.zMax, [
-      windowOf('Win3', 'high', 1.0),
-      windowOf('Win4', 'room', 4.7),
+      WC_WINDOW,
+      LIVING_WEST_WINDOW,
     ], { exterior: true }),
     wall('east', 'z', 6.05, EXT, INTERIOR.min, INTERIOR.zMax, [], { exterior: true }),
     // P1 is the WC's south wall and the back of the hall, with the WC door at its east end.

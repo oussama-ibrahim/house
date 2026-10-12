@@ -10,10 +10,11 @@ import { ROOF } from '../src/spec/presentation.js';
 
 describe('the street front', () => {
   const house = buildHouse({ cutaway: false, design: 'a' });
-  // Whether a box stands beyond the outer face of the level's south or east wall.
+  // Whether a box stands beyond the outer face of the level's south, east or west wall.
   const faceOf = (spec, wall) => ({
     south: (box) => box.min[2] >= spec.size[1] - EPS,
     east: (box) => box.min[0] >= spec.size[0] - EPS,
+    west: (box) => box.max[0] <= EPS,
   })[wall];
 
   it('dresses both levels', () => {
@@ -68,5 +69,35 @@ describe('the street front', () => {
     expect(coping.min[2]).toBeCloseTo(parapet.min[2] - ROOF.copingOverhang);
     expect(coping.max[2]).toBeCloseTo(parapet.max[2] + ROOF.copingOverhang);
     expect(coping.min[1]).toBeCloseTo(parapet.max[1]);
+  });
+});
+
+describe('the west side, on the house\'s own yard', () => {
+  const house = buildHouse({ cutaway: false, design: 'a' });
+  const west = (level) => level.model.facadeDressing.filter((entry) => entry.wall === 'west');
+
+  it('frames every west window with a lighter panel that leaves the glass clear', () => {
+    for (const level of house.levels) {
+      const windows = level.spec.walls.find((w) => w.id === 'west').openings;
+      const panels = west(level).filter((e) => e.piece.id.startsWith('westPanel'));
+      expect(panels).toHaveLength(windows.length);
+      for (const opening of windows) {
+        const covers = (b) => b.min[2] < opening.to - EPS && b.max[2] > opening.from + EPS && b.min[1] < opening.head - EPS && b.max[1] > opening.sill + EPS;
+        expect(panels.flatMap((e) => e.boxes).some(covers), opening.id).toBe(false);
+      }
+    }
+  });
+
+  it('keeps the planting under the living room window below its sill', () => {
+    const ground = house.levels.find((l) => l.spec.id === 'ground');
+    const sill = ground.spec.walls.find((w) => w.id === 'west').openings.find((o) => o.id === 'Win4').sill;
+    const plants = west(ground).find((e) => e.piece.id === 'westPlanterPlants').boxes;
+    for (const box of plants) expect(box.max[1]).toBeLessThan(sill);
+  });
+
+  it('hangs slats with a light at both ends of the upper west face', () => {
+    const first = house.levels.find((l) => l.spec.id === 'first');
+    const ids = west(first).map((e) => e.piece.id);
+    expect(ids).toEqual(expect.arrayContaining(['westSlatsBack', 'westLightBack', 'westSlatsFront', 'westLightFront']));
   });
 });

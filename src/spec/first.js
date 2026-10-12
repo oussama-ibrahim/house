@@ -7,7 +7,7 @@
 // and the street wall belongs to bedroom 1, with a full-width dressing built into the street wall.
 // A sliding glass door off the landing opens east onto the parents' garage roof, used as a terrace:
 // the roof's top is this floor's level and its 1 m parapet is the guard.
-import { firstFront } from './facades.js';
+import { firstFront, firstWestSide } from './facades.js';
 import { COLUMN, COLUMN_FRONT, EXTERIOR_WALL_THICKNESS, PARTITION_THICKNESS, SLAB_OPENING, UPPER_FOOTPRINT, UPPER_INTERIOR, WALL_HEIGHT } from './global.js';
 import {
   clearZone,
@@ -79,6 +79,9 @@ const TERRACE_LEAF = piece('slidingLeafD13', 'Terrace sliding glass door, open',
 // Bedroom 1's street window, shared with the street front dressed round it.
 const BEDROOM_WINDOW = windowOf('Win11', 'room', 0.6);
 const STREET_FRONT = firstFront({ window: BEDROOM_WINDOW });
+// The west wall's windows, shared with the side dressed round them.
+const BEDROOM2_WINDOW = windowOf('Win8', 'room', 0.5);
+const BEDROOM1_WEST_WINDOW = windowOf('Win14', 'room', 4.7);
 
 export const FIRST = Object.freeze({
   id: 'first',
@@ -90,7 +93,11 @@ export const FIRST = Object.freeze({
   caption: [7.25, -0.2],
   dimensionEdges: ['south', 'east'],
   ...STREET_FRONT,
-  facadeDressing: { ...STREET_FRONT.facadeDressing, east: [TERRACE_LEAF] },
+  facadeDressing: {
+    ...STREET_FRONT.facadeDressing,
+    west: firstWestSide({ back: BEDROOM2_WINDOW, front: BEDROOM1_WEST_WINDOW }),
+    east: [TERRACE_LEAF],
+  },
 
   // Every window is one of the family's types (WINDOW_TYPES); the west windows sit on the axes of the
   // ones below them. Bedroom 2 takes its daylight from the west only.
@@ -100,8 +107,8 @@ export const FIRST = Object.freeze({
     // dressing, the user's choice, so it carries no window.
     wall('south', 'x', 8.1, EXT, 0, WIDTH, [BEDROOM_WINDOW], { exterior: true }),
     wall('west', 'z', 0.1, EXT, UPPER_INTERIOR.min, UPPER_INTERIOR.zMax, [
-      windowOf('Win8', 'room', 0.5),
-      windowOf('Win14', 'room', 4.7),
+      BEDROOM2_WINDOW,
+      BEDROOM1_WEST_WINDOW,
     ], { exterior: true }),
     wall('east', 'z', 6.05, EXT, UPPER_INTERIOR.min, UPPER_INTERIOR.zMax, [
       door('D13', ...TERRACE_DOOR.z, TERRACE_DOOR.head, { leaf: false, frame: true }),

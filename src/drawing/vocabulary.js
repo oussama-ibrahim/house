@@ -49,7 +49,7 @@ export const ABOVE_CUT = Object.freeze(new Set(['wallCabinets']));
 // Visual pieces still worth placing on a plan: the kitchen's wet and hot points.
 export const DRAWN_DRESSING = Object.freeze(new Set(['sink', 'hob']));
 // Street-front pieces whose footprint reads on a plan.
-export const FACADE_OUTLINES = Object.freeze({ ground: ['step', 'planters'], first: ['frame', 'pier'] });
+export const FACADE_OUTLINES = Object.freeze({ ground: ['step', 'planters', 'westPlanter'], first: ['frame', 'pier'] });
 
 export const OPENING_KINDS = Object.freeze({
   window: 'Fenêtre',

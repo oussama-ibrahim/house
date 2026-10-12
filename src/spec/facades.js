@@ -7,7 +7,7 @@
 // 7.20, the first level's at 8.20), y up from each level's floor; roof pieces take y from the roof
 // slab's underside. Windows and the door are the levels' own openings, so the front follows the plan.
 import { FOOTPRINT, SLAB_THICKNESS, UPPER_FOOTPRINT, WALL_HEIGHT } from './global.js';
-import { block, extent, piece } from './helpers.js';
+import { block, extent, midpoint, piece } from './helpers.js';
 import { ROOF } from './presentation.js';
 
 const WIDTH = FOOTPRINT.width;
@@ -44,32 +44,69 @@ const rise = (opening) => [opening.sill, opening.head];
 /** The range from `a` to `b` outward of a street face. */
 const out = (face, [a, b]) => [face + a, face + b];
 
-/** A full-height panel spanning `x` with a hole for `window`, standing off the face. */
-function windowPanel(name, x, window, face) {
-  const z = out(face, [0, PANEL_OUT]);
+/**
+ * A wall face to dress: it runs `along` the x or z axis, its outer plane is at `at`, and outward is
+ * the `sign` direction across it. Pieces on it are given along the wall, up, and out from the plane.
+ */
+const faceOf = (along, at, sign) => Object.freeze({ along, at, sign });
+const FACES = Object.freeze({
+  groundStreet: faceOf('x', GROUND_FACE, 1),
+  firstStreet: faceOf('x', UPPER_FACE, 1),
+  // Both levels share the west wall's outer plane, the plot's west edge.
+  west: faceOf('z', 0, -1),
+});
+
+/** A box on a face: `along` the wall, `y` up, `[a, b]` out from its plane. */
+function onFace(face, along, y, [a, b], material) {
+  const across = face.sign > 0 ? [face.at + a, face.at + b] : [face.at - b, face.at - a];
+  return face.along === 'x' ? block(along, y, across, material) : block(across, y, along, material);
+}
+
+/** A full-height panel spanning `extentAlong` with a hole for `window`, standing off the face. */
+function windowPanel(id, name, extentAlong, window, face) {
   const [left, right] = span(window);
   const [sill, head] = rise(window);
-  return piece('windowPanel', name, 'lightBeige', [
-    block([x[0], left], [0, WALL_HEIGHT], z),
-    block([right, x[1]], [0, WALL_HEIGHT], z),
-    block([left, right], [0, sill], z),
-    block([left, right], [head, WALL_HEIGHT], z),
+  const panel = (along, y) => onFace(face, along, y, [0, PANEL_OUT]);
+  return piece(id, name, 'lightBeige', [
+    panel([extentAlong[0], left], [0, WALL_HEIGHT]),
+    panel([right, extentAlong[1]], [0, WALL_HEIGHT]),
+    panel([left, right], [0, sill]),
+    panel([left, right], [head, WALL_HEIGHT]),
   ]);
 }
 
-/** Vertical slats on a dark backing across `x`, full height, standing off `face`. */
-function slats(x, face) {
+/** Vertical slats on a dark backing across `extentAlong`, full height, standing off the face. */
+function slats(id, name, extentAlong, face) {
   const [width, gap, depth, backing] = [0.05, 0.04, 0.05, 0.02];
-  const count = Math.floor((extent(x) + gap) / (width + gap));
-  const start = x[0] + (extent(x) - (count * width + (count - 1) * gap)) / 2;
+  const count = Math.floor((extent(extentAlong) + gap) / (width + gap));
+  const start = extentAlong[0] + (extent(extentAlong) - (count * width + (count - 1) * gap)) / 2;
   const y = [0, WALL_HEIGHT];
-  return piece('slats', 'Wood slats over the dressing wall', 'woodSlat', [
-    block(x, y, out(face, [0, backing]), 'joint'),
+  return piece(id, name, 'woodSlat', [
+    onFace(face, extentAlong, y, [0, backing], 'joint'),
     ...Array.from({ length: count }, (_, i) => {
       const left = start + i * (width + gap);
-      return block([left, left + width], y, out(face, [backing, backing + depth]), 'woodSlat');
+      return onFace(face, [left, left + width], y, [backing, backing + depth], 'woodSlat');
     }),
   ]);
+}
+
+/** A wall light fixed on a slat panel, centred along it. */
+function wallLight(id, extentAlong, face) {
+  const centre = midpoint(extentAlong);
+  return piece(id, 'Wall light on the slats', 'joint', [onFace(face, [centre - 0.04, centre + 0.04], [1.45, 1.6], [0.07, 0.12])]);
+}
+
+/** A vertical LED line flush on a face, floor to ceiling. */
+function ledLine(along, face) {
+  return onFace(face, [along, along + 0.03], [0, WALL_HEIGHT], [0, SKIN]);
+}
+
+/** A marble planter along a face, with its planting `plantHeight` above the floor. */
+function planter(id, name, extentAlong, face, plantHeight) {
+  return [
+    piece(id, name, 'darkMarble', [onFace(face, extentAlong, PLANTER_Y, PLANTER)]),
+    piece(`${id}Plants`, `${name}, planting`, 'leaf', [onFace(face, [extentAlong[0] + 0.1, extentAlong[1] - 0.1], [PLANTER_Y[1], plantHeight], SOIL)]),
+  ];
 }
 
 /** Small light squares on a ceiling at height `y`, `distance` out from the face. */
@@ -84,10 +121,9 @@ export function groundFront({ window, door }) {
     facade: RENDER,
     facadeDressing: {
       south: [
-        windowPanel('Lighter panel round the window', [0.15, 1.9], window, GROUND_FACE),
+        windowPanel('windowPanel', 'Lighter panel round the window', [0.15, 1.9], window, FACES.groundStreet),
         piece('doorTop', 'Dark glass panel over the front door', 'joint', [block(span(door), [door.head, WALL_HEIGHT], out(GROUND_FACE, [0, SKIN]))]),
-        piece('ledStrips', 'Two LED strips beside the door', 'light',
-          DOOR_LED_X.map((x) => block([x, x + 0.03], [0, WALL_HEIGHT], out(GROUND_FACE, [0, SKIN])))),
+        piece('ledStrips', 'Two LED strips beside the door', 'light', DOOR_LED_X.map((x) => ledLine(x, FACES.groundStreet))),
         piece('planters', 'Marble planters', 'darkMarble', [
           block([0.15, 1.9], PLANTER_Y, out(GROUND_FACE, PLANTER)),
           block([5.6, 6.1], PLANTER_Y, out(GROUND_FACE, PLANTER)),
@@ -118,9 +154,9 @@ export function firstFront({ window }) {
         ]),
         piece('pier', 'Dark marble pier', 'darkMarble', [block(PIER_X, [-SLAB_THICKNESS, WALL_HEIGHT], frame)]),
         piece('pierLed', 'LED line beside the pier', 'light', [block([PIER_X[0] - LED_LINE, PIER_X[0]], [0, WALL_HEIGHT], frame)]),
-        windowPanel('Lighter panel round the bedroom window', [0.4, 2.7], window, UPPER_FACE),
-        slats(SLATS_X, UPPER_FACE),
-        piece('wallLight', 'Wall light on the slats', 'joint', [block([4.11, 4.19], [1.45, 1.6], out(UPPER_FACE, [0.07, 0.12]))]),
+        windowPanel('windowPanel', 'Lighter panel round the bedroom window', [0.4, 2.7], window, FACES.firstStreet),
+        slats('slats', 'Wood slats over the dressing wall', SLATS_X, FACES.firstStreet),
+        wallLight('wallLight', SLATS_X, FACES.firstStreet),
       ],
     },
   };
@@ -145,6 +181,37 @@ export function garageFront({ x, bay }) {
       downlights([x[0] + 0.75, x[1] - 0.75], WALL_HEIGHT, GROUND_FACE, OVERHANG_DOWNLIGHT_OUT)),
     piece('garagePlanter', 'Marble planter at the garage end', 'darkMarble', [block(planterX, PLANTER_Y, planter)]),
     piece('garagePlants', 'Planting at the garage end', 'leaf', [block([planterX[0] + 0.1, planterX[1] - 0.1], [PLANTER_Y[1], 1.4], soil)]),
+  ];
+}
+
+/**
+ * The ground level's west side, on the house's own yard, after the owner's second image: a lighter
+ * panel round each window, the WC's high one included, a marble planter under the living room's
+ * window, and an LED line near each corner.
+ */
+export function groundWestSide({ wc, living }) {
+  return [
+    windowPanel('westPanelWC', 'Lighter panel round the WC window', [wc.from - 0.25, wc.to + 0.25], wc, FACES.west),
+    windowPanel('westPanelLiving', 'Lighter panel round the living room window', [living.from - 0.25, living.to + 0.25], living, FACES.west),
+    ...planter('westPlanter', 'Marble planter along the west wall', [living.from - 0.25, living.to + 0.25], FACES.west, 0.85),
+    piece('westLeds', 'LED lines near the west corners', 'light', [ledLine(0.35, FACES.west), ledLine(FOOTPRINT.depth - 0.25, FACES.west)]),
+  ];
+}
+
+/**
+ * The first level's west side: a lighter panel round each bedroom window, a narrow slat strip at
+ * the back corner and a slat panel between bedroom 1's window and the street, each with a light.
+ */
+export function firstWestSide({ back, front }) {
+  const backSlats = [0.08, back.from - 0.1];
+  const frontSlats = [front.to + 0.35, UPPER_FACE - 0.25];
+  return [
+    slats('westSlatsBack', 'Wood slat strip at the back corner', backSlats, FACES.west),
+    wallLight('westLightBack', backSlats, FACES.west),
+    windowPanel('westPanelBedroom2', 'Lighter panel round bedroom 2 window', [back.from - 0.05, back.to + 0.25], back, FACES.west),
+    windowPanel('westPanelBedroom1', 'Lighter panel round bedroom 1 west window', [front.from - 0.25, front.to + 0.25], front, FACES.west),
+    slats('westSlatsFront', 'Wood slats toward the street corner', frontSlats, FACES.west),
+    wallLight('westLightFront', frontSlats, FACES.west),
   ];
 }
 
